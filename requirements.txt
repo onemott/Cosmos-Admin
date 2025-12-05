@@ -1,0 +1,40 @@
+# Core Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# Database
+sqlalchemy[asyncio]>=2.0.23
+asyncpg>=0.29.0
+alembic>=1.12.0
+
+# Validation & Settings
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Authentication
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+
+# HTTP Client
+httpx>=0.25.0
+
+# Task Queue
+celery[redis]>=5.3.0
+redis>=5.0.0
+
+# AWS
+boto3>=1.33.0
+
+# File Handling
+python-multipart>=0.0.6
+aiofiles>=23.2.1
+
+# Development
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+black>=23.11.0
+ruff>=0.1.6
+mypy>=1.7.0
+pre-commit>=3.6.0
+
