@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 
 from src.api.v1 import auth, tenants, users, clients, accounts, holdings, transactions
-from src.api.v1 import documents, tasks, modules, reports
+from src.api.v1 import documents, tasks, modules, reports, stats
 
 router = APIRouter()
 
@@ -18,4 +18,5 @@ router.include_router(documents.router, prefix="/documents", tags=["Documents"])
 router.include_router(tasks.router, prefix="/tasks", tags=["Tasks"])
 router.include_router(modules.router, prefix="/modules", tags=["Modules"])
 router.include_router(reports.router, prefix="/reports", tags=["Reports"])
+router.include_router(stats.router, prefix="/stats", tags=["Statistics"])
 
