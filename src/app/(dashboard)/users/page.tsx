@@ -90,12 +90,12 @@ export default function UsersPage() {
                       {user.email}
                     </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground">
                     Joined: {new Date(user.created_at).toLocaleDateString()}
                   </div>
                 </div>
               ))}
-            </div>
+          </div>
           )}
         </CardContent>
       </Card>

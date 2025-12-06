@@ -1,4 +1,4 @@
-import { getSession } from "next-auth/react";
+import { getAccessToken } from "@/lib/auth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
@@ -9,36 +9,37 @@ class ApiClient {
     this.baseUrl = baseUrl;
   }
 
-  private async getHeaders(): Promise<HeadersInit> {
+  private getHeaders(): HeadersInit {
     const headers: HeadersInit = {
       "Content-Type": "application/json",
     };
 
-    // Get auth token from session
-    const session = await getSession();
-    if (session?.accessToken) {
-      headers["Authorization"] = `Bearer ${session.accessToken}`;
+    // Get auth token from localStorage
+    const token = getAccessToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
     }
 
     return headers;
   }
 
   async get<T>(endpoint: string): Promise<T> {
-    const headers = await this.getHeaders();
+    const headers = this.getHeaders();
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: "GET",
       headers,
     });
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || `API Error: ${response.statusText}`);
     }
 
     return response.json();
   }
 
   async post<T>(endpoint: string, data?: unknown): Promise<T> {
-    const headers = await this.getHeaders();
+    const headers = this.getHeaders();
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: "POST",
       headers,
@@ -46,14 +47,15 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || `API Error: ${response.statusText}`);
     }
 
     return response.json();
   }
 
   async patch<T>(endpoint: string, data: unknown): Promise<T> {
-    const headers = await this.getHeaders();
+    const headers = this.getHeaders();
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: "PATCH",
       headers,
@@ -61,21 +63,23 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || `API Error: ${response.statusText}`);
     }
 
     return response.json();
   }
 
   async delete(endpoint: string): Promise<void> {
-    const headers = await this.getHeaders();
+    const headers = this.getHeaders();
     const response = await fetch(`${this.baseUrl}${endpoint}`, {
       method: "DELETE",
       headers,
     });
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || `API Error: ${response.statusText}`);
     }
   }
 }

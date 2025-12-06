@@ -9,30 +9,30 @@ export default function DashboardPage() {
   const { data: health, isLoading: healthLoading } = useSystemHealth();
 
   const statCards = [
-    {
-      title: "Total Tenants",
+  {
+    title: "Total Tenants",
       value: stats?.total_tenants ?? 0,
       description: `${stats?.active_tenants ?? 0} active EAM firms`,
-      icon: Building2,
-    },
-    {
-      title: "Total Users",
+    icon: Building2,
+  },
+  {
+    title: "Total Users",
       value: stats?.total_users ?? 0,
       description: `${stats?.active_users ?? 0} active users`,
-      icon: Users,
-    },
+    icon: Users,
+  },
     {
       title: "Total Clients",
       value: stats?.total_clients ?? 0,
       description: "Across all tenants",
       icon: UserCheck,
     },
-    {
-      title: "Total AUM",
+  {
+    title: "Total AUM",
       value: stats?.formatted_aum ?? "$0",
-      description: "Assets under management",
-      icon: Wallet,
-    },
+    description: "Assets under management",
+    icon: Wallet,
+  },
   ];
 
   const getHealthStatus = (status: string | undefined) => {
@@ -78,8 +78,8 @@ export default function DashboardPage() {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               ) : (
                 <>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground">{stat.description}</p>
+              <div className="text-2xl font-bold">{stat.value}</div>
+              <p className="text-xs text-muted-foreground">{stat.description}</p>
                 </>
               )}
             </CardContent>
@@ -109,21 +109,21 @@ export default function DashboardPage() {
             {healthLoading ? (
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">API Server</span>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">API Server</span>
                   <span className={`text-sm ${getHealthStatus(health?.api_server).color}`}>
                     {getHealthStatus(health?.api_server).label}
                   </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Database</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Database</span>
                   <span className={`text-sm ${getHealthStatus(health?.database).color}`}>
                     {getHealthStatus(health?.database).label}
                   </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Background Jobs</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Background Jobs</span>
                   <span className={`text-sm ${getHealthStatus(health?.background_jobs).color}`}>
                     {getHealthStatus(health?.background_jobs).label}
                   </span>

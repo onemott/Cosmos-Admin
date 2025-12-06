@@ -85,12 +85,12 @@ export default function TenantsPage() {
                       {tenant.contact_email && ` • ${tenant.contact_email}`}
                     </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground">
                     Created: {new Date(tenant.created_at).toLocaleDateString()}
                   </div>
                 </div>
               ))}
-            </div>
+          </div>
           )}
         </CardContent>
       </Card>
