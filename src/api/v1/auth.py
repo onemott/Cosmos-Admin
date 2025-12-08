@@ -5,8 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from src.db.session import get_db
+from src.db.repositories.user_repo import UserRepository
 from src.schemas.auth import LoginRequest, TokenResponse, RefreshTokenRequest
 from src.models.user import User
+from src.models.tenant import Tenant
 from src.core.security import (
     verify_password,
     create_access_token,
@@ -18,16 +20,25 @@ from src.core.security import (
 router = APIRouter()
 
 
+async def check_tenant_active(db: AsyncSession, tenant_id: str) -> bool:
+    """Check if a tenant is active."""
+    result = await db.execute(
+        select(Tenant).where(Tenant.id == tenant_id)
+    )
+    tenant = result.scalar_one_or_none()
+    return tenant is not None and tenant.is_active
+
+
 @router.post("/login", response_model=TokenResponse)
 async def login(
     request: LoginRequest,
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     """Authenticate user and return tokens."""
-    # Look up user by email
-    query = select(User).where(User.email == request.email)
-    result = await db.execute(query)
-    user = result.scalar_one_or_none()
+    repo = UserRepository(db)
+    
+    # Look up user by email with roles loaded
+    user = await repo.get_by_email_for_auth(request.email)
     
     # Check if user exists
     if not user:
@@ -43,6 +54,13 @@ async def login(
             detail="User account is disabled",
         )
     
+    # Check if user's tenant is active
+    if not await check_tenant_active(db, str(user.tenant_id)):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Your organization's account has been deactivated. Please contact support.",
+        )
+    
     # Verify password
     if not user.hashed_password:
         raise HTTPException(
@@ -56,13 +74,8 @@ async def login(
             detail="Invalid email or password",
         )
     
-    # Determine user roles
-    roles = []
-    if user.is_superuser:
-        roles.append("super_admin")
-    # TODO: Load actual roles from user.roles relationship
-    # For now, add basic role based on user type
-    roles.append("admin")
+    # Load roles from database (explicit role assignment required)
+    roles = [role.name for role in user.roles]
     
     # Generate tokens
     access_token = create_access_token(
@@ -89,15 +102,17 @@ async def refresh_token(
     db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     """Refresh access token using refresh token."""
+    repo = UserRepository(db)
+    
     payload = decode_token(request.refresh_token)
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired refresh token",
         )
-    
-    # Verify user still exists and is active
-    user = await db.get(User, payload.sub)
+
+    # Verify user still exists and is active, load with roles
+    user = await repo.get_with_roles(payload.sub)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -110,11 +125,15 @@ async def refresh_token(
             detail="User account is disabled",
         )
     
-    # Determine user roles
-    roles = []
-    if user.is_superuser:
-        roles.append("super_admin")
-    roles.append("admin")
+    # Check if user's tenant is active
+    if not await check_tenant_active(db, str(user.tenant_id)):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Your organization's account has been deactivated. Please contact support.",
+        )
+    
+    # Load roles from database (explicit role assignment required)
+    roles = [role.name for role in user.roles]
     
     # Generate new tokens
     access_token = create_access_token(

@@ -18,6 +18,7 @@ class UserCreate(UserBase):
 
     password: Optional[str] = None
     role_ids: Optional[List[str]] = None
+    tenant_id: Optional[str] = None  # Super admin can specify tenant
 
 
 class UserUpdate(BaseModel):
@@ -37,6 +38,7 @@ class UserResponse(UserBase):
     tenant_id: str
     is_active: bool
     is_superuser: bool
+    roles: List[str] = []  # List of role names
     created_at: datetime
     updated_at: datetime
 

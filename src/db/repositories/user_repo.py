@@ -98,6 +98,63 @@ class UserRepository(BaseRepository[User]):
         result = await self.session.execute(query)
         return result.scalars().all()
 
+    async def assign_roles(self, user_id: str, role_ids: list[str]) -> User:
+        """Assign roles to a user (replaces existing roles)."""
+        user = await self.get_with_roles(user_id)
+        if not user:
+            raise ValueError(f"User {user_id} not found")
+        
+        # Get role objects
+        query = select(Role).where(Role.id.in_(role_ids))
+        result = await self.session.execute(query)
+        roles = result.scalars().all()
+        
+        # Replace user's roles
+        user.roles = list(roles)
+        await self.session.commit()  # Commit to persist the many-to-many changes
+        
+        # Re-fetch with roles eagerly loaded (refresh doesn't load relationships)
+        return await self.get_with_roles(user_id)
+
+    async def add_role(self, user_id: str, role_id: str) -> User:
+        """Add a single role to user."""
+        user = await self.get_with_roles(user_id)
+        if not user:
+            raise ValueError(f"User {user_id} not found")
+        
+        role = await self.session.get(Role, role_id)
+        if not role:
+            raise ValueError(f"Role {role_id} not found")
+        
+        if role not in user.roles:
+            user.roles.append(role)
+            await self.session.flush()
+        
+        return user
+
+    async def remove_role(self, user_id: str, role_id: str) -> User:
+        """Remove a single role from user."""
+        user = await self.get_with_roles(user_id)
+        if not user:
+            raise ValueError(f"User {user_id} not found")
+        
+        role = await self.session.get(Role, role_id)
+        if role and role in user.roles:
+            user.roles.remove(role)
+            await self.session.flush()
+        
+        return user
+
+    async def get_by_email_for_auth(self, email: str) -> Optional[User]:
+        """Get user by email with roles loaded (for authentication)."""
+        query = (
+            select(User)
+            .where(User.email == email)
+            .options(selectinload(User.roles))
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+
 
 class RoleRepository(BaseRepository[Role]):
     """Repository for Role model operations."""

@@ -3,12 +3,25 @@
 from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from src.core.config import settings
 from src.core.security import decode_token, TokenPayload
 from src.core.tenancy import set_current_tenant_id
+from src.db.session import get_db
+from src.models.tenant import Tenant
 
 security = HTTPBearer(auto_error=False)
+
+
+async def check_tenant_active(db: AsyncSession, tenant_id: str) -> bool:
+    """Check if a tenant is active."""
+    result = await db.execute(
+        select(Tenant).where(Tenant.id == tenant_id)
+    )
+    tenant = result.scalar_one_or_none()
+    return tenant is not None and tenant.is_active
 
 # Development mode mock user for unauthenticated requests
 # Using valid UUID format for database compatibility
@@ -22,10 +35,12 @@ DEV_MOCK_USER = {
 
 async def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Get current authenticated user from JWT token.
     
     In development mode with no token, returns a mock super admin user.
+    Also checks if the user's tenant is still active.
     """
     # Development mode bypass - allow unauthenticated access
     if settings.debug and (credentials is None or not credentials.credentials):
@@ -51,8 +66,13 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Set tenant context
+    # Check if user's tenant is still active
     if payload.tenant_id:
+        if not await check_tenant_active(db, payload.tenant_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your organization's account has been deactivated. Please contact support.",
+            )
         set_current_tenant_id(payload.tenant_id)
 
     return {
@@ -65,15 +85,39 @@ async def get_current_user(
 async def get_current_superuser(
     current_user: dict = Depends(get_current_user),
 ) -> dict:
-    """Ensure current user is a super admin."""
-    # In development mode, always allow
-    if settings.debug:
-        return current_user
+    """Ensure current user is a platform admin (super_admin or platform_admin).
     
-    if "super_admin" not in current_user.get("roles", []):
+    Use for write operations (create/update/delete) on platform resources.
+    """
+    platform_roles = {"super_admin", "platform_admin"}
+    user_roles = set(current_user.get("roles", []))
+    
+    if not platform_roles.intersection(user_roles):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Super admin access required",
+            detail="Platform admin access required",
+        )
+    return current_user
+
+
+async def get_platform_user(
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Ensure current user has platform-level access (read-only or admin).
+    
+    Allowed roles:
+    - super_admin, platform_admin: Full platform access
+    - platform_user: Read-only platform access
+    
+    Use for read operations on platform resources like tenants list.
+    """
+    platform_roles = {"super_admin", "platform_admin", "platform_user"}
+    user_roles = set(current_user.get("roles", []))
+    
+    if not platform_roles.intersection(user_roles):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Platform access required",
         )
     return current_user
 
@@ -81,13 +125,16 @@ async def get_current_superuser(
 async def get_current_tenant_admin(
     current_user: dict = Depends(get_current_user),
 ) -> dict:
-    """Ensure current user is a tenant admin or higher."""
-    # In development mode, always allow
-    if settings.debug:
-        return current_user
+    """Ensure current user is a tenant admin or higher.
     
-    allowed_roles = {"super_admin", "tenant_admin", "eam_manager"}
-    if not allowed_roles.intersection(set(current_user.get("roles", []))):
+    Allowed roles:
+    - super_admin, platform_admin: Platform-level access
+    - tenant_admin: Tenant-level admin access
+    """
+    allowed_roles = {"super_admin", "platform_admin", "tenant_admin"}
+    user_roles = set(current_user.get("roles", []))
+    
+    if not allowed_roles.intersection(user_roles):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
@@ -117,11 +164,8 @@ def require_permission(permission: str):
     async def check_permission(
         current_user: dict = Depends(get_current_user),
     ) -> dict:
-        # In development mode, always allow
-        if settings.debug:
-            return current_user
         # TODO: Implement proper permission checking against database
-        # For now, just return the user
+        # For now, just return the user (permission check will be added later)
         return current_user
 
     return check_permission

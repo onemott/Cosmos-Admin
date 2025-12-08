@@ -1,4 +1,4 @@
-"""Tenant management endpoints (Super Admin only)."""
+"""Tenant management endpoints."""
 
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.db.session import get_db
 from src.db.repositories.tenant_repo import TenantRepository
 from src.schemas.tenant import TenantCreate, TenantUpdate, TenantResponse
-from src.api.deps import get_current_superuser
+from src.api.deps import get_current_superuser, get_platform_user
 
 router = APIRouter()
 
@@ -18,9 +18,12 @@ async def list_tenants(
     limit: int = Query(20, ge=1, le=100),
     search: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
-    _: dict = Depends(get_current_superuser),
+    _: dict = Depends(get_platform_user),  # Read access for all platform users
 ) -> List[TenantResponse]:
-    """List all tenants (super admin only)."""
+    """List all tenants.
+    
+    Accessible by all platform-level users (platform_admin, platform_user).
+    """
     repo = TenantRepository(db)
     
     if search:
@@ -59,9 +62,12 @@ async def create_tenant(
 async def get_tenant(
     tenant_id: str,
     db: AsyncSession = Depends(get_db),
-    _: dict = Depends(get_current_superuser),
+    _: dict = Depends(get_platform_user),  # Read access for all platform users
 ) -> TenantResponse:
-    """Get tenant by ID (super admin only)."""
+    """Get tenant by ID.
+    
+    Accessible by all platform-level users (platform_admin, platform_user).
+    """
     repo = TenantRepository(db)
     tenant = await repo.get(tenant_id)
     
@@ -100,12 +106,12 @@ async def update_tenant(
 
 
 @router.delete("/{tenant_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_tenant(
+async def deactivate_tenant(
     tenant_id: str,
     db: AsyncSession = Depends(get_db),
     _: dict = Depends(get_current_superuser),
 ) -> None:
-    """Delete tenant (soft delete - sets is_active to False)."""
+    """Deactivate tenant (soft delete - sets is_active to False)."""
     repo = TenantRepository(db)
     tenant = await repo.get(tenant_id)
     
@@ -117,4 +123,35 @@ async def delete_tenant(
     
     # Soft delete by setting is_active to False
     await repo.update(tenant, {"is_active": False})
+
+
+@router.delete("/{tenant_id}/permanent", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_tenant_permanent(
+    tenant_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_superuser),
+) -> None:
+    """Permanently delete tenant and all associated data.
+    
+    WARNING: This action cannot be undone. All users, clients, accounts,
+    and other data associated with this tenant will be permanently deleted.
+    """
+    repo = TenantRepository(db)
+    tenant = await repo.get(tenant_id)
+    
+    if not tenant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tenant not found",
+        )
+    
+    # Prevent deletion of platform tenant
+    if str(tenant_id) == "00000000-0000-0000-0000-000000000000":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cannot delete the platform tenant",
+        )
+    
+    # Hard delete - this will cascade to related records
+    await repo.delete(tenant)
 
