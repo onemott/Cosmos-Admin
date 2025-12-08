@@ -52,13 +52,13 @@ export default function DashboardPage() {
 
   // Platform-level cards (super admin only)
   const platformCards = isSuperAdmin && platformStats ? [
-    {
-      title: "Total Tenants",
+  {
+    title: "Total Tenants",
       value: platformStats.total_tenants,
       description: `${platformStats.active_tenants} active EAM firms`,
-      icon: Building2,
-    },
-    {
+    icon: Building2,
+  },
+  {
       title: "Platform Users",
       value: platformStats.total_users,
       description: `${platformStats.active_users} active across platform`,
@@ -72,20 +72,20 @@ export default function DashboardPage() {
       title: "My Team",
       value: tenantStats.total_users,
       description: `${tenantStats.active_users} active users in your tenant`,
-      icon: Users,
-    },
-    {
+    icon: Users,
+  },
+  {
       title: "My Clients",
       value: tenantStats.total_clients,
       description: "Clients in your organization",
       icon: UserCheck,
     },
     {
-      title: "Total AUM",
+    title: "Total AUM",
       value: tenantStats.formatted_aum,
       description: "Your assets under management",
-      icon: Wallet,
-    },
+    icon: Wallet,
+  },
   ];
 
   const getHealthStatus = (status: string | undefined) => {
@@ -134,8 +134,8 @@ export default function DashboardPage() {
             <p className="text-sm text-red-600">
               Failed to load dashboard stats. Make sure the backend is running at http://localhost:8000
             </p>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
       )}
 
       {/* Platform Stats - Super Admin Only */}
@@ -192,21 +192,21 @@ export default function DashboardPage() {
             {healthLoading ? (
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">API Server</span>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">API Server</span>
                   <span className={`text-sm ${getHealthStatus(health?.api_server).color}`}>
                     {getHealthStatus(health?.api_server).label}
                   </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Database</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Database</span>
                   <span className={`text-sm ${getHealthStatus(health?.database).color}`}>
                     {getHealthStatus(health?.database).label}
                   </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">Background Jobs</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Background Jobs</span>
                   <span className={`text-sm ${getHealthStatus(health?.background_jobs).color}`}>
                     {getHealthStatus(health?.background_jobs).label}
                   </span>

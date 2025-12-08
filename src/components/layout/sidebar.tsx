@@ -125,7 +125,7 @@ export function Sidebar() {
       </div>
 
       <Separator />
-      
+
       {/* Platform Level Badge */}
       {isPlatformLevel && (
         <div className="px-4 py-2">

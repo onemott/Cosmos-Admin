@@ -248,9 +248,9 @@ export default function UsersPage() {
         </div>
         {isAdmin && (
           <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add User
-          </Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Add User
+        </Button>
         )}
       </div>
 
@@ -353,7 +353,7 @@ export default function UsersPage() {
             // Tenant admin/user view: flat list
             <div className="space-y-3">
               {userList.map((user) => renderUserRow(user))}
-            </div>
+          </div>
           )}
         </CardContent>
       </Card>
