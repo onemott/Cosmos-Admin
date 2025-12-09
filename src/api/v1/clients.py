@@ -270,3 +270,286 @@ async def get_client_documents(
         }
         for doc in documents
     ]
+
+
+# ============================================================================
+# Client Module Endpoints
+# ============================================================================
+
+from src.models.module import Module, TenantModule, ClientModule
+from src.schemas.module import ClientModuleResponse
+from src.api.deps import get_current_tenant_admin
+from sqlalchemy import and_
+
+
+@router.get("/{client_id}/modules", response_model=List[ClientModuleResponse])
+async def get_client_modules(
+    client_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> List[ClientModuleResponse]:
+    """Get all modules for a client with their enabled status.
+    
+    Returns modules that are:
+    - Active globally (module.is_active=True)
+    - Enabled for the tenant (is_core=True OR tenant_modules.is_enabled=True)
+    
+    For each module, is_client_enabled indicates if the client has access.
+    """
+    repo = ClientRepository(db)
+    client = await repo.get(client_id)
+    
+    if not client:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client not found",
+        )
+    
+    # STRICT TENANT SCOPING
+    tenant_id = current_user.get("tenant_id")
+    if client.tenant_id != tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied",
+        )
+    
+    # Get all active modules
+    modules_query = select(Module).where(Module.is_active == True).order_by(Module.category, Module.name)
+    modules_result = await db.execute(modules_query)
+    modules = modules_result.scalars().all()
+    
+    # Get tenant module statuses
+    tm_query = select(TenantModule).where(TenantModule.tenant_id == tenant_id)
+    tm_result = await db.execute(tm_query)
+    tenant_modules = {tm.module_id: tm for tm in tm_result.scalars().all()}
+    
+    # Get client module statuses
+    cm_query = select(ClientModule).where(ClientModule.client_id == client_id)
+    cm_result = await db.execute(cm_query)
+    client_modules = {cm.module_id: cm for cm in cm_result.scalars().all()}
+    
+    # Build response
+    response = []
+    for module in modules:
+        tm = tenant_modules.get(module.id)
+        cm = client_modules.get(module.id)
+        
+        # Check if tenant has access (core or explicitly enabled)
+        is_tenant_enabled = module.is_core or (tm is not None and tm.is_enabled)
+        
+        # Client is enabled if:
+        # - Module is core (always enabled), OR
+        # - Tenant has access AND (no client_module record OR client_module.is_enabled=True)
+        if module.is_core:
+            is_client_enabled = True
+        elif not is_tenant_enabled:
+            is_client_enabled = False
+        else:
+            # Tenant has access; check client-level override
+            # Default to enabled if no ClientModule record exists
+            is_client_enabled = cm.is_enabled if cm is not None else True
+        
+        response.append(ClientModuleResponse(
+            id=module.id,
+            code=module.code,
+            name=module.name,
+            name_zh=module.name_zh,
+            description=module.description,
+            description_zh=module.description_zh,
+            category=module.category,
+            version=module.version,
+            is_core=module.is_core,
+            is_active=module.is_active,
+            is_tenant_enabled=is_tenant_enabled,
+            is_client_enabled=is_client_enabled,
+            created_at=module.created_at,
+            updated_at=module.updated_at,
+        ))
+    
+    return response
+
+
+@router.post("/{client_id}/modules/{module_id}/enable", response_model=ClientModuleResponse)
+async def enable_client_module(
+    client_id: str,
+    module_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_tenant_admin),
+) -> ClientModuleResponse:
+    """Enable a module for a specific client (tenant admin only).
+    
+    The module must be enabled for the tenant first.
+    Core modules are always enabled.
+    """
+    repo = ClientRepository(db)
+    client = await repo.get(client_id)
+    
+    if not client:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client not found",
+        )
+    
+    tenant_id = current_user.get("tenant_id")
+    if client.tenant_id != tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied",
+        )
+    
+    # Get the module
+    module = await db.get(Module, module_id)
+    if not module:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Module not found",
+        )
+    
+    if not module.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot enable an inactive module",
+        )
+    
+    if module.is_core:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Core modules are always enabled",
+        )
+    
+    # Check tenant has access to this module
+    tm_query = select(TenantModule).where(
+        and_(TenantModule.tenant_id == tenant_id, TenantModule.module_id == module_id)
+    )
+    tm_result = await db.execute(tm_query)
+    tm = tm_result.scalar_one_or_none()
+    
+    if not tm or not tm.is_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Module is not enabled for your tenant. Request access from platform admin first.",
+        )
+    
+    # Find or create ClientModule record
+    cm_query = select(ClientModule).where(
+        and_(ClientModule.client_id == client_id, ClientModule.module_id == module_id)
+    )
+    cm_result = await db.execute(cm_query)
+    cm = cm_result.scalar_one_or_none()
+    
+    if cm:
+        cm.is_enabled = True
+    else:
+        cm = ClientModule(
+            tenant_id=tenant_id,
+            client_id=client_id,
+            module_id=module_id,
+            is_enabled=True,
+        )
+        db.add(cm)
+    
+    await db.commit()
+    
+    return ClientModuleResponse(
+        id=module.id,
+        code=module.code,
+        name=module.name,
+        name_zh=module.name_zh,
+        description=module.description,
+        description_zh=module.description_zh,
+        category=module.category,
+        version=module.version,
+        is_core=module.is_core,
+        is_active=module.is_active,
+        is_tenant_enabled=True,
+        is_client_enabled=True,
+        created_at=module.created_at,
+        updated_at=module.updated_at,
+    )
+
+
+@router.post("/{client_id}/modules/{module_id}/disable", response_model=ClientModuleResponse)
+async def disable_client_module(
+    client_id: str,
+    module_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_tenant_admin),
+) -> ClientModuleResponse:
+    """Disable a module for a specific client (tenant admin only).
+    
+    Core modules cannot be disabled.
+    """
+    repo = ClientRepository(db)
+    client = await repo.get(client_id)
+    
+    if not client:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Client not found",
+        )
+    
+    tenant_id = current_user.get("tenant_id")
+    if client.tenant_id != tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied",
+        )
+    
+    # Get the module
+    module = await db.get(Module, module_id)
+    if not module:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Module not found",
+        )
+    
+    if module.is_core:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Core modules cannot be disabled",
+        )
+    
+    # Check tenant has access to this module
+    tm_query = select(TenantModule).where(
+        and_(TenantModule.tenant_id == tenant_id, TenantModule.module_id == module_id)
+    )
+    tm_result = await db.execute(tm_query)
+    tm = tm_result.scalar_one_or_none()
+    is_tenant_enabled = tm is not None and tm.is_enabled
+    
+    # Find or create ClientModule record
+    cm_query = select(ClientModule).where(
+        and_(ClientModule.client_id == client_id, ClientModule.module_id == module_id)
+    )
+    cm_result = await db.execute(cm_query)
+    cm = cm_result.scalar_one_or_none()
+    
+    if cm:
+        cm.is_enabled = False
+    else:
+        cm = ClientModule(
+            tenant_id=tenant_id,
+            client_id=client_id,
+            module_id=module_id,
+            is_enabled=False,
+        )
+        db.add(cm)
+    
+    await db.commit()
+    
+    return ClientModuleResponse(
+        id=module.id,
+        code=module.code,
+        name=module.name,
+        name_zh=module.name_zh,
+        description=module.description,
+        description_zh=module.description_zh,
+        category=module.category,
+        version=module.version,
+        is_core=module.is_core,
+        is_active=module.is_active,
+        is_tenant_enabled=is_tenant_enabled,
+        is_client_enabled=False,
+        created_at=module.created_at,
+        updated_at=module.updated_at,
+    )

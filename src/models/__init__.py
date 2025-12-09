@@ -8,7 +8,7 @@ from src.models.holding import Holding, Instrument
 from src.models.transaction import Transaction
 from src.models.document import Document
 from src.models.task import Task, TaskType
-from src.models.module import Module, TenantModule
+from src.models.module import Module, TenantModule, ClientModule, ModuleCategory
 from src.models.audit_log import AuditLog
 
 __all__ = [
@@ -29,6 +29,8 @@ __all__ = [
     "TaskType",
     "Module",
     "TenantModule",
+    "ClientModule",
+    "ModuleCategory",
     "AuditLog",
 ]
 

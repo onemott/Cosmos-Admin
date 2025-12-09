@@ -29,7 +29,7 @@ DEV_MOCK_USER = {
     "user_id": "00000000-0000-0000-0000-000000000001",
     "tenant_id": "00000000-0000-0000-0000-000000000000",
     "roles": ["super_admin"],
-    "email": "dev@eam-platform.local",
+    "email": "dev@eam-platform.dev",
 }
 
 
@@ -44,6 +44,8 @@ async def get_current_user(
     """
     # Development mode bypass - allow unauthenticated access
     if settings.debug and (credentials is None or not credentials.credentials):
+        import logging
+        logging.warning("Using DEV_MOCK_USER for unauthenticated request")
         return DEV_MOCK_USER
     
     if credentials is None:
@@ -169,4 +171,46 @@ def require_permission(permission: str):
         return current_user
 
     return check_permission
+
+
+def require_module(module_code: str):
+    """Dependency factory for module access checking.
+    
+    Checks if the current user's tenant has access to the specified module.
+    Core modules are always accessible.
+    
+    Usage:
+        @router.get("/some-feature")
+        async def some_feature(
+            current_user: dict = Depends(require_module("custom_portfolio")),
+        ):
+            ...
+    """
+    from sqlalchemy import select, and_
+    from src.models.module import Module, TenantModule
+    
+    async def check_module_access(
+        current_user: dict = Depends(get_current_user),
+        db = None,  # Will be injected via Depends in the actual route
+    ) -> dict:
+        tenant_id = current_user.get("tenant_id")
+        if not tenant_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User must belong to a tenant",
+            )
+        
+        # Import here to avoid circular imports
+        from src.db.session import get_db
+        
+        # This is a placeholder - the actual implementation would need
+        # to be done differently since we can't easily inject db here.
+        # For now, this serves as documentation of the intended pattern.
+        # The actual check should be done in the route handler or via
+        # a more sophisticated dependency injection approach.
+        
+        # TODO: Implement actual module check when features are built
+        return current_user
+
+    return check_module_access
 

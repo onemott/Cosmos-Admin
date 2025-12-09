@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from src.models.account import Account, BankConnection
     from src.models.document import Document
     from src.models.task import Task
+    from src.models.module import ClientModule
 
 
 class ClientType(str, enum.Enum):
@@ -116,6 +117,9 @@ class Client(Base, TimestampMixin):
         "Document", back_populates="client"
     )
     tasks: Mapped[list["Task"]] = relationship("Task", back_populates="client")
+    modules: Mapped[list["ClientModule"]] = relationship(
+        "ClientModule", back_populates="client", cascade="all, delete-orphan"
+    )
 
     @property
     def display_name(self) -> str:

@@ -56,7 +56,7 @@ async def get_current_user_info(
     ):
         return UserResponse(
             id="00000000-0000-0000-0000-000000000001",
-            email="dev@eam-platform.local",
+            email="dev@eam-platform.dev",
             first_name="Dev",
             last_name="User",
             tenant_id="00000000-0000-0000-0000-000000000000",

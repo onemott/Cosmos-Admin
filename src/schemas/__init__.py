@@ -5,6 +5,16 @@ from src.schemas.auth import TokenResponse, LoginRequest
 from src.schemas.tenant import TenantCreate, TenantUpdate, TenantResponse
 from src.schemas.user import UserCreate, UserUpdate, UserResponse
 from src.schemas.client import ClientCreate, ClientUpdate, ClientResponse
+from src.schemas.module import (
+    ModuleCategory,
+    ModuleCreate,
+    ModuleUpdate,
+    ModuleResponse,
+    TenantModuleResponse,
+    ModuleAccessRequest,
+    ModuleAccessRequestResponse,
+    ClientModuleResponse,
+)
 
 __all__ = [
     "PaginationParams",
@@ -20,5 +30,13 @@ __all__ = [
     "ClientCreate",
     "ClientUpdate",
     "ClientResponse",
+    "ModuleCategory",
+    "ModuleCreate",
+    "ModuleUpdate",
+    "ModuleResponse",
+    "TenantModuleResponse",
+    "ModuleAccessRequest",
+    "ModuleAccessRequestResponse",
+    "ClientModuleResponse",
 ]
 
