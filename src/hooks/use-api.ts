@@ -206,31 +206,118 @@ export function useClientDocuments(id: string) {
   });
 }
 
-// Modules
-export function useModules() {
+// Client Modules
+export function useClientModules(clientId: string, options?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: ["modules"],
+    queryKey: ["clients", clientId, "modules"],
+    queryFn: () => api.clients.modules(clientId),
+    enabled: options?.enabled !== undefined ? options.enabled : !!clientId,
+  });
+}
+
+export function useEnableClientModule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      clientId,
+      moduleId,
+    }: {
+      clientId: string;
+      moduleId: string;
+    }) => api.clients.enableModule(clientId, moduleId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["clients", variables.clientId, "modules"] });
+    },
+  });
+}
+
+export function useDisableClientModule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      clientId,
+      moduleId,
+    }: {
+      clientId: string;
+      moduleId: string;
+    }) => api.clients.disableModule(clientId, moduleId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["clients", variables.clientId, "modules"] });
+    },
+  });
+}
+
+// Modules
+
+// List modules for current user's tenant (with is_enabled status)
+export function useMyTenantModules() {
+  return useQuery({
+    queryKey: ["modules", "my-tenant"],
     queryFn: () => api.modules.list(),
   });
 }
 
-export function useEnableModule() {
+// List all modules in platform catalogue (platform users)
+export function useAllModules() {
+  return useQuery({
+    queryKey: ["modules", "all"],
+    queryFn: () => api.modules.listAll(),
+  });
+}
+
+// List modules for a specific tenant (platform users)
+export function useTenantModules(tenantId: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["modules", "tenant", tenantId],
+    queryFn: () => api.modules.listForTenant(tenantId),
+    enabled: options?.enabled !== undefined ? options.enabled : !!tenantId,
+  });
+}
+
+// Get a specific module
+export function useModule(moduleId: string) {
+  return useQuery({
+    queryKey: ["modules", moduleId],
+    queryFn: () => api.modules.get(moduleId),
+    enabled: !!moduleId,
+  });
+}
+
+// Create a new module (platform admin)
+export function useCreateModule() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      moduleId,
-      tenantId,
-    }: {
-      moduleId: string;
-      tenantId?: string;
-    }) => api.modules.enable(moduleId, tenantId),
+    mutationFn: (data: unknown) => api.modules.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["modules"] });
     },
   });
 }
 
-export function useDisableModule() {
+// Update a module (platform admin)
+export function useUpdateModule(moduleId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: unknown) => api.modules.update(moduleId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["modules"] });
+    },
+  });
+}
+
+// Delete a module (platform admin)
+export function useDeleteModule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (moduleId: string) => api.modules.delete(moduleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["modules"] });
+    },
+  });
+}
+
+// Enable module for a tenant (platform admin)
+export function useEnableTenantModule() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({
@@ -238,11 +325,38 @@ export function useDisableModule() {
       tenantId,
     }: {
       moduleId: string;
-      tenantId?: string;
-    }) => api.modules.disable(moduleId, tenantId),
-    onSuccess: () => {
+      tenantId: string;
+    }) => api.modules.enable(moduleId, tenantId),
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["modules"] });
+      queryClient.invalidateQueries({ queryKey: ["modules", "tenant", variables.tenantId] });
     },
+  });
+}
+
+// Disable module for a tenant (platform admin)
+export function useDisableTenantModule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      moduleId,
+      tenantId,
+    }: {
+      moduleId: string;
+      tenantId: string;
+    }) => api.modules.disable(moduleId, tenantId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["modules"] });
+      queryClient.invalidateQueries({ queryKey: ["modules", "tenant", variables.tenantId] });
+    },
+  });
+}
+
+// Request access to a module (tenant admin)
+export function useRequestModuleAccess() {
+  return useMutation({
+    mutationFn: (data: { module_code: string; message?: string }) =>
+      api.modules.requestAccess(data),
   });
 }
 

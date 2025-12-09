@@ -13,10 +13,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Loader2, UserCheck, Plus, MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
+import { Search, Loader2, UserCheck, Plus, MoreHorizontal, Pencil, Trash2, Eye, Blocks } from "lucide-react";
 import { useClients, useClient } from "@/hooks/use-api";
 import { useAuth } from "@/contexts/auth-context";
-import { ClientDialog, DeleteClientDialog } from "@/components/clients";
+import { ClientDialog, DeleteClientDialog, ClientModulesDialog, ClientModuleBadges } from "@/components/clients";
 
 interface ClientSummary {
   id: string;
@@ -52,8 +52,10 @@ export default function ClientsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [modulesDialogOpen, setModulesDialogOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [selectedClientForDelete, setSelectedClientForDelete] = useState<ClientSummary | null>(null);
+  const [selectedClientForModules, setSelectedClientForModules] = useState<ClientSummary | null>(null);
 
   // Fetch full client details when editing
   const { data: fullClientData } = useClient(selectedClientId || "", {
@@ -70,6 +72,11 @@ export default function ClientsPage() {
   const handleEdit = (client: ClientSummary) => {
     setSelectedClientId(client.id);
     setEditDialogOpen(true);
+  };
+
+  const handleManageModules = (client: ClientSummary) => {
+    setSelectedClientForModules(client);
+    setModulesDialogOpen(true);
   };
 
   const handleDelete = (client: ClientSummary) => {
@@ -119,8 +126,8 @@ export default function ClientsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-        <div className="relative w-64">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <div className="relative w-64">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search clients..."
               className="pl-8"
@@ -175,7 +182,7 @@ export default function ClientsPage() {
                   key={client.id}
                   className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
                 >
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{client.display_name}</span>
                       <Badge variant="outline" className="capitalize">
@@ -184,6 +191,11 @@ export default function ClientsPage() {
                       <Badge variant={getKycBadgeVariant(client.kyc_status)}>
                         KYC: {client.kyc_status.replace("_", " ")}
                       </Badge>
+                    </div>
+                    {/* Module badges */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground">Modules:</span>
+                      <ClientModuleBadges clientId={client.id} maxVisible={3} />
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -209,6 +221,10 @@ export default function ClientsPage() {
                               <Pencil className="mr-2 h-4 w-4" />
                               Edit
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleManageModules(client)}>
+                              <Blocks className="mr-2 h-4 w-4" />
+                              Manage Modules
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => handleDelete(client)}
@@ -224,7 +240,7 @@ export default function ClientsPage() {
                   </div>
                 </div>
               ))}
-          </div>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -242,6 +258,17 @@ export default function ClientsPage() {
         client={fullClientData as ClientFull}
       />
 
+      {/* Manage Modules Dialog */}
+      <ClientModulesDialog
+        open={modulesDialogOpen}
+        onOpenChange={(open) => {
+          setModulesDialogOpen(open);
+          if (!open) setSelectedClientForModules(null);
+        }}
+        client={selectedClientForModules}
+        canManage={canManage}
+      />
+
       {/* Delete Confirmation Dialog */}
       <DeleteClientDialog
         open={deleteDialogOpen}
@@ -254,4 +281,3 @@ export default function ClientsPage() {
     </div>
   );
 }
-

@@ -39,15 +39,37 @@ export interface Client {
   updated_at: string;
 }
 
+export type ModuleCategory = "basic" | "investment" | "analytics";
+
 export interface Module {
   id: string;
   code: string;
   name: string;
+  name_zh?: string;
   description?: string;
+  description_zh?: string;
+  category: ModuleCategory;
   version: string;
   is_active: boolean;
   is_core: boolean;
   config_schema?: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+// Module with tenant-specific enabled status
+export interface TenantModuleStatus {
+  id: string;
+  code: string;
+  name: string;
+  name_zh?: string;
+  description?: string;
+  description_zh?: string;
+  category: ModuleCategory;
+  version: string;
+  is_core: boolean;
+  is_active: boolean;
+  is_enabled: boolean; // Tenant-specific: true for core modules, or per TenantModule record
   created_at: string;
   updated_at: string;
 }
@@ -58,6 +80,54 @@ export interface TenantModule {
   module_id: string;
   is_enabled: boolean;
   config?: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ModuleCreate {
+  code: string;
+  name: string;
+  name_zh?: string;
+  description?: string;
+  description_zh?: string;
+  category: ModuleCategory;
+  is_core?: boolean;
+  is_active?: boolean;
+}
+
+export interface ModuleUpdate {
+  name?: string;
+  name_zh?: string;
+  description?: string;
+  description_zh?: string;
+  category?: ModuleCategory;
+  is_active?: boolean;
+}
+
+export interface ModuleAccessRequest {
+  module_code: string;
+  message?: string;
+}
+
+export interface ModuleAccessRequestResponse {
+  status: string;
+  message: string;
+}
+
+// Client module status (includes tenant and client enable flags)
+export interface ClientModuleStatus {
+  id: string;
+  code: string;
+  name: string;
+  name_zh?: string;
+  description?: string;
+  description_zh?: string;
+  category: ModuleCategory;
+  version: string;
+  is_core: boolean;
+  is_active: boolean;
+  is_tenant_enabled: boolean; // Whether tenant has this module
+  is_client_enabled: boolean; // Client-specific enabled status
   created_at: string;
   updated_at: string;
 }

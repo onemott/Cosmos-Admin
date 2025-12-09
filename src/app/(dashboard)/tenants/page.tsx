@@ -11,10 +11,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Loader2, Building2, MoreHorizontal, Pencil, Trash2, Settings, Power, AlertTriangle, Eye } from "lucide-react";
+import { Plus, Loader2, Building2, MoreHorizontal, Pencil, Trash2, Settings, Power, AlertTriangle, Eye, Blocks } from "lucide-react";
 import { useTenants } from "@/hooks/use-api";
 import { useAuth } from "@/contexts/auth-context";
-import { TenantDialog, DeleteTenantDialog } from "@/components/tenants";
+import { TenantDialog, DeleteTenantDialog, TenantModulesDialog, TenantModuleBadges } from "@/components/tenants";
 
 interface Tenant {
   id: string;
@@ -39,6 +39,7 @@ export default function TenantsPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [modulesDialogOpen, setModulesDialogOpen] = useState(false);
   const [deleteMode, setDeleteMode] = useState<"deactivate" | "permanent">("deactivate");
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
 
@@ -47,6 +48,11 @@ export default function TenantsPage() {
   const handleEdit = (tenant: Tenant) => {
     setSelectedTenant(tenant);
     setEditDialogOpen(true);
+  };
+
+  const handleManageModules = (tenant: Tenant) => {
+    setSelectedTenant(tenant);
+    setModulesDialogOpen(true);
   };
 
   const handleDeactivate = (tenant: Tenant) => {
@@ -79,9 +85,9 @@ export default function TenantsPage() {
         </div>
         {canManage && (
           <Button onClick={() => setCreateDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Tenant
-        </Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Tenant
+          </Button>
         )}
       </div>
 
@@ -125,20 +131,25 @@ export default function TenantsPage() {
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-semibold">
                       {tenant.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{tenant.name}</span>
                         <Badge variant={tenant.is_active ? "default" : "secondary"}>
                           {tenant.is_active ? "Active" : "Inactive"}
                         </Badge>
                       </div>
-          <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-muted-foreground">
                         <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
                           {tenant.slug}
                         </span>
                         {tenant.contact_email && (
                           <span className="ml-2">• {tenant.contact_email}</span>
                         )}
+                      </div>
+                      {/* Module badges */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-muted-foreground">Modules:</span>
+                        <TenantModuleBadges tenantId={tenant.id} maxVisible={3} />
                       </div>
                     </div>
                   </div>
@@ -162,6 +173,10 @@ export default function TenantsPage() {
                             <DropdownMenuItem onClick={() => handleEdit(tenant)}>
                               <Pencil className="mr-2 h-4 w-4" />
                               Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleManageModules(tenant)}>
+                              <Blocks className="mr-2 h-4 w-4" />
+                              Manage Modules
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleSettings(tenant)}>
                               <Settings className="mr-2 h-4 w-4" />
@@ -194,7 +209,7 @@ export default function TenantsPage() {
                   </div>
                 </div>
               ))}
-          </div>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -213,6 +228,17 @@ export default function TenantsPage() {
           if (!open) setSelectedTenant(null);
         }}
         tenant={selectedTenant}
+      />
+
+      {/* Manage Modules Dialog */}
+      <TenantModulesDialog
+        open={modulesDialogOpen}
+        onOpenChange={(open) => {
+          setModulesDialogOpen(open);
+          if (!open) setSelectedTenant(null);
+        }}
+        tenant={selectedTenant}
+        canManage={canManage}
       />
 
       {/* Delete Confirmation Dialog */}
