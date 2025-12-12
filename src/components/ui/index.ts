@@ -31,4 +31,5 @@ export {
   DropdownMenuSubTrigger,
   DropdownMenuRadioGroup,
 } from "./dropdown-menu";
+export { Alert, AlertTitle, AlertDescription } from "./alert";
 

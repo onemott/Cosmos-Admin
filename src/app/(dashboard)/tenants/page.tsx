@@ -85,9 +85,9 @@ export default function TenantsPage() {
         </div>
         {canManage && (
           <Button onClick={() => setCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Tenant
-          </Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Tenant
+        </Button>
         )}
       </div>
 
@@ -138,7 +138,7 @@ export default function TenantsPage() {
                           {tenant.is_active ? "Active" : "Inactive"}
                         </Badge>
                       </div>
-                      <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground">
                         <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
                           {tenant.slug}
                         </span>
@@ -209,7 +209,7 @@ export default function TenantsPage() {
                   </div>
                 </div>
               ))}
-            </div>
+          </div>
           )}
         </CardContent>
       </Card>

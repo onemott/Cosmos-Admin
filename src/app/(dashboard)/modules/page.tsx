@@ -141,18 +141,14 @@ export default function ModulesPage() {
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit
                 </DropdownMenuItem>
-                {!module.is_core && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => handleDelete(module)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </>
-                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => handleDelete(module)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -262,9 +258,9 @@ export default function ModulesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Modules</h1>
-          <p className="text-muted-foreground">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Modules</h1>
+        <p className="text-muted-foreground">
             {isPlatformLevel
               ? "Manage platform modules and feature configurations"
               : "View your organization's available modules and features"
@@ -349,7 +345,7 @@ export default function ModulesPage() {
           if (!open) setSelectedModule(null);
         }}
         module={selectedModule}
-      />
+              />
 
       {/* Delete Module Dialog */}
       <DeleteModuleDialog
