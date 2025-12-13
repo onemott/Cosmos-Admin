@@ -122,7 +122,7 @@ export default function ClientsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
           <p className="text-muted-foreground">
-            View and manage your organization's client profiles
+            View and manage your organization&apos;s client profiles
           </p>
         </div>
         <div className="flex items-center gap-2">

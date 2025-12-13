@@ -16,9 +16,20 @@ import { useAuth } from "@/contexts/auth-context";
 import { useCurrentUser } from "@/hooks/use-api";
 import { Badge } from "@/components/ui/badge";
 
+interface CurrentUserData {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  tenant_id: string;
+  is_active: boolean;
+  roles: string[];
+}
+
 export function Header() {
   const { user: authUser, logout } = useAuth();
-  const { data: currentUser, isLoading } = useCurrentUser();
+  const { data: currentUserData, isLoading } = useCurrentUser();
+  const currentUser = currentUserData as CurrentUserData | undefined;
 
   // Get initials for avatar from actual user data
   const getInitials = () => {

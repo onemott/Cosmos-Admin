@@ -252,6 +252,39 @@ export const api = {
       apiClient.get(`/audit?skip=${params?.skip || 0}&limit=${params?.limit || 50}`),
   },
 
+  // Tasks
+  tasks: {
+    list: (params?: {
+      skip?: number;
+      limit?: number;
+      client_id?: string;
+      status?: string;
+      task_type?: string;
+      workflow_state?: string;
+      assigned_to_me?: boolean;
+      pending_eam_only?: boolean;
+    }) => {
+      const searchParams = new URLSearchParams({
+        skip: String(params?.skip || 0),
+        limit: String(params?.limit || 20),
+      });
+      if (params?.client_id) searchParams.set("client_id", params.client_id);
+      if (params?.status) searchParams.set("status", params.status);
+      if (params?.task_type) searchParams.set("task_type", params.task_type);
+      if (params?.workflow_state) searchParams.set("workflow_state", params.workflow_state);
+      if (params?.assigned_to_me) searchParams.set("assigned_to_me", "true");
+      if (params?.pending_eam_only) searchParams.set("pending_eam_only", "true");
+      return apiClient.get(`/tasks?${searchParams}`);
+    },
+    get: (id: string) => apiClient.get(`/tasks/${id}`),
+    create: (data: unknown) => apiClient.post("/tasks", data),
+    update: (id: string, data: unknown) => apiClient.patch(`/tasks/${id}`, data),
+    respond: (id: string, data: { action: string; comment?: string; proposal_data?: unknown }) =>
+      apiClient.post(`/tasks/${id}/respond`, data),
+    assign: (id: string, userId: string) =>
+      apiClient.post(`/tasks/${id}/assign?user_id=${userId}`),
+  },
+
   // Statistics
   stats: {
     dashboard: () => apiClient.get<{

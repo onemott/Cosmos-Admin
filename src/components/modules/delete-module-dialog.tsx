@@ -58,7 +58,7 @@ export function DeleteModuleDialog({
           </AlertDialogTitle>
           <AlertDialogDescription className="space-y-3">
             <p>
-              Are you sure you want to delete the module <strong>"{module.name}"</strong>?
+              Are you sure you want to delete the module <strong>&quot;{module.name}&quot;</strong>?
             </p>
             
             {isCoreModule && (

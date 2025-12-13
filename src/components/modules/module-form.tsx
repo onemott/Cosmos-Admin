@@ -23,7 +23,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 
 // Validation schema

@@ -117,7 +117,7 @@ export default function TenantsPage() {
             <div className="text-center py-8">
               <Building2 className="mx-auto h-12 w-12 text-muted-foreground/50" />
               <p className="mt-4 text-sm text-muted-foreground">
-                No tenants registered yet. Click "Add Tenant" to create your first EAM firm.
+                No tenants registered yet. Click &quot;Add Tenant&quot; to create your first EAM firm.
               </p>
             </div>
           ) : (

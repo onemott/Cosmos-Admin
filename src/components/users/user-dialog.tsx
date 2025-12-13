@@ -114,7 +114,7 @@ export function UserDialog({ open, onOpenChange, user }: UserDialogProps) {
           roles={roleList}
           showTenantSelector={isSuperAdmin && mode === "create"}
           showRoleSelector={isAdmin}
-          currentTenantId={currentUser?.tenant_id}
+          currentTenantId={currentUser?.tenantId}
         />
       </DialogContent>
     </Dialog>

@@ -122,7 +122,7 @@ export function DeleteUserDialog({
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm">
-                    To confirm, type the user's email{" "}
+                    To confirm, type the user&apos;s email{" "}
                     <strong className="font-mono bg-muted px-1 py-0.5 rounded">{user.email}</strong>{" "}
                     below:
                   </p>

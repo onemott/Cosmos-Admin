@@ -8,6 +8,7 @@ import {
   Building2,
   Users,
   UserCircle,
+  ClipboardList,
   Blocks,
   Link2,
   ScrollText,
@@ -46,6 +47,12 @@ const tenantNavigation = [
     href: "/clients",
     icon: UserCircle,
     description: "Your tenant's clients",
+  },
+  {
+    name: "Tasks",
+    href: "/tasks",
+    icon: ClipboardList,
+    description: "Tasks and workflows",
   },
 ];
 

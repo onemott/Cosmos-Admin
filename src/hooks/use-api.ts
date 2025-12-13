@@ -360,6 +360,97 @@ export function useRequestModuleAccess() {
   });
 }
 
+// Tasks
+export interface TaskFilters {
+  skip?: number;
+  limit?: number;
+  client_id?: string;
+  status?: string;
+  task_type?: string;
+  workflow_state?: string;
+  assigned_to_me?: boolean;
+  pending_eam_only?: boolean;
+}
+
+export function useTasks(params?: TaskFilters) {
+  return useQuery({
+    queryKey: ["tasks", params],
+    queryFn: () => api.tasks.list(params),
+  });
+}
+
+export function useTask(id: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["tasks", id],
+    queryFn: () => api.tasks.get(id),
+    enabled: options?.enabled !== undefined ? options.enabled : !!id,
+  });
+}
+
+export function useCreateTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: unknown) => api.tasks.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+}
+
+export function useUpdateTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: unknown }) =>
+      api.tasks.update(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", variables.id] });
+    },
+  });
+}
+
+export function useRespondToTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      action,
+      comment,
+      proposal_data,
+    }: {
+      id: string;
+      action: string;
+      comment?: string;
+      proposal_data?: unknown;
+    }) => api.tasks.respond(id, { action, comment, proposal_data }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", variables.id] });
+    },
+  });
+}
+
+export function useAssignTask() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, userId }: { taskId: string; userId: string }) =>
+      api.tasks.assign(taskId, userId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", variables.taskId] });
+    },
+  });
+}
+
+// Client Tasks (for client detail page)
+export function useClientTasks(clientId: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["tasks", { client_id: clientId }],
+    queryFn: () => api.tasks.list({ client_id: clientId }),
+    enabled: options?.enabled !== undefined ? options.enabled : !!clientId,
+  });
+}
+
 // Audit Logs
 export function useAuditLogs(params?: { skip?: number; limit?: number }) {
   return useQuery({

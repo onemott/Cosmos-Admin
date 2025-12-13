@@ -161,6 +161,119 @@ export interface Account {
   updated_at: string;
 }
 
+// Task Types
+export type TaskType =
+  | "onboarding"
+  | "kyc_review"
+  | "document_review"
+  | "proposal_approval"
+  | "product_request"
+  | "compliance_check"
+  | "risk_review"
+  | "account_opening"
+  | "general";
+
+export type TaskStatus = "pending" | "in_progress" | "completed" | "cancelled" | "on_hold";
+
+export type WorkflowState =
+  | "draft"
+  | "pending_eam"
+  | "pending_client"
+  | "approved"
+  | "declined"
+  | "expired";
+
+export type TaskPriority = "low" | "medium" | "high" | "urgent";
+
+export interface TaskClientSummary {
+  id: string;
+  display_name: string;
+  email?: string;
+  client_type: string;
+}
+
+export interface TaskUserSummary {
+  id: string;
+  email: string;
+  display_name?: string;
+}
+
+export interface Task {
+  id: string;
+  tenant_id: string;
+  client_id?: string;
+  client?: TaskClientSummary;
+  title: string;
+  description?: string;
+  task_type: TaskType;
+  status: TaskStatus;
+  priority: TaskPriority;
+  assigned_to_id?: string;
+  assigned_to?: TaskUserSummary;
+  created_by_id?: string;
+  created_by?: TaskUserSummary;
+  due_date?: string;
+  completed_at?: string;
+  workflow_state?: WorkflowState;
+  approval_required_by?: string;
+  approval_action?: "approved" | "declined";
+  approval_comment?: string;
+  approval_acted_at?: string;
+  proposal_data?: Record<string, unknown>;
+  requires_eam_action: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskSummary {
+  id: string;
+  client_id?: string;
+  client_name?: string;
+  title: string;
+  task_type: TaskType;
+  status: TaskStatus;
+  priority: TaskPriority;
+  workflow_state?: WorkflowState;
+  assigned_to_id?: string;
+  assigned_to_name?: string;
+  due_date?: string;
+  requires_eam_action: boolean;
+  created_at: string;
+}
+
+export interface TaskListResponse {
+  tasks: TaskSummary[];
+  total_count: number;
+  pending_eam_count: number;
+  skip: number;
+  limit: number;
+}
+
+export interface TaskCreate {
+  client_id: string;
+  title: string;
+  description?: string;
+  task_type?: TaskType;
+  priority?: TaskPriority;
+  assigned_to_id?: string;
+  due_date?: string;
+  workflow_state?: WorkflowState;
+  approval_required_by?: string;
+  proposal_data?: Record<string, unknown>;
+}
+
+export interface TaskUpdate {
+  title?: string;
+  description?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  assigned_to_id?: string;
+  due_date?: string;
+  workflow_state?: WorkflowState;
+  approval_required_by?: string;
+  proposal_data?: Record<string, unknown>;
+}
+
 export interface AuditLog {
   id: string;
   tenant_id: string;

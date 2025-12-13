@@ -17,8 +17,13 @@ import {
   Building2,
   DollarSign,
   Upload,
+  ClipboardList,
+  AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
-import { useClient, useClientAccounts, useClientDocuments } from "@/hooks/use-api";
+import Link from "next/link";
+import { useClient, useClientAccounts, useClientDocuments, useClientTasks } from "@/hooks/use-api";
+import type { TaskSummary, TaskListResponse } from "@/types";
 
 interface ClientData {
   id: string;
@@ -63,10 +68,14 @@ export default function ClientDetailPage() {
   const { data: client, isLoading, error } = useClient(clientId);
   const { data: accounts, isLoading: accountsLoading } = useClientAccounts(clientId);
   const { data: documents, isLoading: documentsLoading } = useClientDocuments(clientId);
+  const { data: tasksData, isLoading: tasksLoading } = useClientTasks(clientId);
 
   const clientData = client as ClientData | undefined;
   const accountsList = (accounts as Account[]) || [];
   const documentsList = (documents as Document[]) || [];
+  const taskListResponse = tasksData as TaskListResponse | undefined;
+  const tasksList = taskListResponse?.tasks || [];
+  const pendingEamCount = taskListResponse?.pending_eam_count || 0;
 
   const getKycBadgeVariant = (status: string) => {
     switch (status) {
@@ -163,6 +172,15 @@ export default function ClientDetailPage() {
           <TabsTrigger value="documents">
             <FileText className="mr-2 h-4 w-4" />
             Documents ({documentsList.length})
+          </TabsTrigger>
+          <TabsTrigger value="tasks" className="relative">
+            <ClipboardList className="mr-2 h-4 w-4" />
+            Tasks ({tasksList.length})
+            {pendingEamCount > 0 && (
+              <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
+                {pendingEamCount}
+              </span>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -402,6 +420,97 @@ export default function ClientDetailPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Tasks Tab */}
+        <TabsContent value="tasks" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Tasks</CardTitle>
+                  <CardDescription>
+                    Active tasks, approvals, and workflow items for this client
+                  </CardDescription>
+                </div>
+                <Link href={`/tasks?client_id=${clientId}`}>
+                  <Button variant="outline" size="sm">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    View All in Tasks
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {tasksLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : tasksList.length === 0 ? (
+                <div className="text-center py-8">
+                  <ClipboardList className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    No tasks found for this client.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {tasksList.slice(0, 10).map((task: TaskSummary) => (
+                    <Link
+                      key={task.id}
+                      href={`/tasks/${task.id}`}
+                      className="block"
+                    >
+                      <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          {task.requires_eam_action && (
+                            <AlertTriangle className="h-4 w-4 text-orange-500 flex-shrink-0" />
+                          )}
+                          <div>
+                            <div className="font-medium">{task.title}</div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {task.task_type.replace("_", " ")} •{" "}
+                              {task.workflow_state
+                                ? task.workflow_state.replace("_", " ")
+                                : task.status.replace("_", " ")}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <Badge
+                            variant={
+                              task.status === "completed"
+                                ? "default"
+                                : task.status === "cancelled"
+                                ? "destructive"
+                                : "secondary"
+                            }
+                          >
+                            {task.status.replace("_", " ")}
+                          </Badge>
+                          {task.due_date && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Due: {new Date(task.due_date).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                  {tasksList.length > 10 && (
+                    <div className="text-center pt-2">
+                      <Link
+                        href={`/tasks?client_id=${clientId}`}
+                        className="text-sm text-primary hover:underline"
+                      >
+                        View all {tasksList.length} tasks →
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

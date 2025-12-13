@@ -162,7 +162,7 @@ export function ChangePasswordDialog({
 
             {!requireCurrentPassword && (
               <div className="rounded-md bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700">
-                As an administrator, you can reset this user's password without knowing their current password.
+                As an administrator, you can reset this user&apos;s password without knowing their current password.
               </div>
             )}
 

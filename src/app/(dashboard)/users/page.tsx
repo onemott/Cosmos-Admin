@@ -43,6 +43,7 @@ interface User {
   is_superuser: boolean;
   created_at: string;
   updated_at: string;
+  roles: string[];
 }
 
 interface Tenant {
@@ -143,7 +144,7 @@ export default function UsersPage() {
           {user.last_name.charAt(0).toUpperCase()}
         </div>
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium">
               {user.first_name} {user.last_name}
             </span>
@@ -151,12 +152,12 @@ export default function UsersPage() {
               <Badge variant="outline" className="text-xs">You</Badge>
             )}
             {user.is_superuser && (
-              <Badge variant="destructive" className="gap-1">
+              <Badge variant="destructive" className="gap-1 flex-shrink-0">
                 <Shield className="h-3 w-3" />
                 Super Admin
               </Badge>
             )}
-            <Badge variant={user.is_active ? "default" : "secondary"}>
+            <Badge variant={user.is_active ? "default" : "secondary"} className="flex-shrink-0">
               {user.is_active ? "Active" : "Inactive"}
             </Badge>
           </div>
@@ -294,7 +295,7 @@ export default function UsersPage() {
             <div className="text-center py-8">
               <Users className="mx-auto h-12 w-12 text-muted-foreground/50" />
               <p className="mt-4 text-sm text-muted-foreground">
-                No users found. Click "Add User" to create your first team member.
+                No users found. Click &quot;Add User&quot; to create your first team member.
               </p>
             </div>
           ) : isPlatformAdmin ? (
