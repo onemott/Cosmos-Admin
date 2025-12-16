@@ -15,6 +15,8 @@ import {
   Settings,
   LogOut,
   Shield,
+  KeyRound,
+  Ticket,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/auth-context";
@@ -47,6 +49,18 @@ const tenantNavigation = [
     href: "/clients",
     icon: UserCircle,
     description: "Your tenant's clients",
+  },
+  {
+    name: "Invitations",
+    href: "/invitations",
+    icon: Ticket,
+    description: "Client self-registration invites",
+  },
+  {
+    name: "Client Credentials",
+    href: "/client-users",
+    icon: KeyRound,
+    description: "Manage client login access",
   },
   {
     name: "Tasks",

@@ -142,6 +142,7 @@ export function useClients(params?: {
   skip?: number;
   limit?: number;
   search?: string;
+  kyc_status?: string;
 }) {
   return useQuery({
     queryKey: ["clients", params],
@@ -673,6 +674,134 @@ export function useUpdateProductSync() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products", variables.productId] });
+    },
+  });
+}
+
+// ============================================================================
+// Client Users (Login Credentials)
+// ============================================================================
+
+export interface ClientUserFilters {
+  skip?: number;
+  limit?: number;
+  search?: string;
+  is_active?: boolean;
+}
+
+export function useClientUsers(params?: ClientUserFilters) {
+  return useQuery({
+    queryKey: ["clientUsers", params],
+    queryFn: () => api.clientUsers.list(params),
+  });
+}
+
+export function useClientUser(id: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["clientUsers", id],
+    queryFn: () => api.clientUsers.get(id),
+    enabled: options?.enabled !== undefined ? options.enabled : !!id,
+  });
+}
+
+export function useClientUserByClient(clientId: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["clientUsers", "by-client", clientId],
+    queryFn: () => api.clientUsers.getByClient(clientId),
+    enabled: options?.enabled !== undefined ? options.enabled : !!clientId,
+    retry: false, // Don't retry on 404 - client may not have credentials yet
+  });
+}
+
+export function useCreateClientUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { client_id: string; email: string; password?: string; send_welcome_email?: boolean }) =>
+      api.clientUsers.create(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["clientUsers"] });
+      queryClient.invalidateQueries({ queryKey: ["clientUsers", "by-client", variables.client_id] });
+    },
+  });
+}
+
+export function useUpdateClientUser(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { email?: string; is_active?: boolean }) =>
+      api.clientUsers.update(id, data),
+    onSuccess: () => {
+      // Invalidate all clientUsers queries to ensure UI updates
+      queryClient.invalidateQueries({ queryKey: ["clientUsers"] });
+    },
+  });
+}
+
+export function useResetClientUserPassword() {
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data?: { new_password?: string; send_email?: boolean } }) =>
+      api.clientUsers.resetPassword(id, data),
+  });
+}
+
+export function useDeleteClientUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.clientUsers.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clientUsers"] });
+    },
+  });
+}
+
+// ============================================================================
+// Invitations (Client Self-Registration)
+// ============================================================================
+
+export interface InvitationFilters {
+  skip?: number;
+  limit?: number;
+  status?: string;
+  search?: string;
+}
+
+export function useInvitations(params?: InvitationFilters) {
+  return useQuery({
+    queryKey: ["invitations", params],
+    queryFn: () => api.invitations.list(params),
+  });
+}
+
+export function useInvitation(id: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["invitations", id],
+    queryFn: () => api.invitations.get(id),
+    enabled: options?.enabled !== undefined ? options.enabled : !!id,
+  });
+}
+
+export function useCreateInvitation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      email?: string;
+      invitee_name?: string;
+      message?: string;
+      client_id?: string;
+      expires_in_days?: number;
+    }) => api.invitations.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+    },
+  });
+}
+
+export function useCancelInvitation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.invitations.cancel(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invitations"] });
     },
   });
 }

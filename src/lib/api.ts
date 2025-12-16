@@ -197,11 +197,12 @@ export const api = {
 
   // Clients
   clients: {
-    list: (params?: { skip?: number; limit?: number; search?: string }) => {
+    list: (params?: { skip?: number; limit?: number; search?: string; kyc_status?: string }) => {
       const searchParams = new URLSearchParams({
         skip: String(params?.skip || 0),
         limit: String(params?.limit || 20),
         ...(params?.search && { search: params.search }),
+        ...(params?.kyc_status && { kyc_status: params.kyc_status }),
       });
       return apiClient.get(`/clients?${searchParams}`);
     },
@@ -389,6 +390,50 @@ export const api = {
       apiClient.patch(`/products/${productId}/sync`, data),
     // Delete a product
     delete: (productId: string) => apiClient.delete(`/products/${productId}`),
+  },
+
+  // Client Users (Client Login Credentials)
+  clientUsers: {
+    list: (params?: { skip?: number; limit?: number; search?: string; is_active?: boolean }) => {
+      const searchParams = new URLSearchParams({
+        skip: String(params?.skip || 0),
+        limit: String(params?.limit || 20),
+      });
+      if (params?.search) searchParams.set("search", params.search);
+      if (params?.is_active !== undefined) searchParams.set("is_active", String(params.is_active));
+      return apiClient.get(`/client-users?${searchParams}`);
+    },
+    get: (id: string) => apiClient.get(`/client-users/${id}`),
+    getByClient: (clientId: string) => apiClient.get(`/client-users/by-client/${clientId}`),
+    create: (data: { client_id: string; email: string; password?: string; send_welcome_email?: boolean }) =>
+      apiClient.post("/client-users", data),
+    update: (id: string, data: { email?: string; is_active?: boolean }) =>
+      apiClient.patch(`/client-users/${id}`, data),
+    resetPassword: (id: string, data?: { new_password?: string; send_email?: boolean }) =>
+      apiClient.post(`/client-users/${id}/reset-password`, data || {}),
+    delete: (id: string) => apiClient.delete(`/client-users/${id}`),
+  },
+
+  // Invitations (Client Self-Registration)
+  invitations: {
+    list: (params?: { skip?: number; limit?: number; status?: string; search?: string }) => {
+      const searchParams = new URLSearchParams({
+        skip: String(params?.skip || 0),
+        limit: String(params?.limit || 20),
+      });
+      if (params?.status) searchParams.set("status", params.status);
+      if (params?.search) searchParams.set("search", params.search);
+      return apiClient.get(`/invitations?${searchParams}`);
+    },
+    get: (id: string) => apiClient.get(`/invitations/${id}`),
+    create: (data: {
+      email?: string;
+      invitee_name?: string;
+      message?: string;
+      client_id?: string;
+      expires_in_days?: number;
+    }) => apiClient.post("/invitations", data),
+    cancel: (id: string) => apiClient.delete(`/invitations/${id}`),
   },
 };
 

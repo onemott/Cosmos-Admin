@@ -1,11 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Loader2,
   ArrowLeft,
@@ -15,15 +25,29 @@ import {
   Briefcase,
   User,
   Building2,
-  DollarSign,
   Upload,
   ClipboardList,
   AlertTriangle,
   ExternalLink,
+  KeyRound,
+  Power,
+  Copy,
+  Check,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
-import { useClient, useClientAccounts, useClientDocuments, useClientTasks } from "@/hooks/use-api";
-import type { TaskSummary, TaskListResponse } from "@/types";
+import {
+  useClient,
+  useClientAccounts,
+  useClientDocuments,
+  useClientTasks,
+  useClientUserByClient,
+  useCreateClientUser,
+  useUpdateClientUser,
+  useResetClientUserPassword,
+  useDeleteClientUser,
+} from "@/hooks/use-api";
+import type { TaskSummary, TaskListResponse, ClientUser } from "@/types";
 
 interface ClientData {
   id: string;
@@ -65,10 +89,25 @@ export default function ClientDetailPage() {
   const router = useRouter();
   const clientId = params.clientId as string;
 
+  // Dialog states for login access
+  const [createCredentialsOpen, setCreateCredentialsOpen] = useState(false);
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
   const { data: client, isLoading, error } = useClient(clientId);
   const { data: accounts, isLoading: accountsLoading } = useClientAccounts(clientId);
   const { data: documents, isLoading: documentsLoading } = useClientDocuments(clientId);
   const { data: tasksData, isLoading: tasksLoading } = useClientTasks(clientId);
+  const { data: clientUserData, isLoading: clientUserLoading, error: clientUserError } = useClientUserByClient(clientId);
+
+  // Mutations
+  const createCredentialsMutation = useCreateClientUser();
+  const resetPasswordMutation = useResetClientUserPassword();
+  const updateClientUserMutation = useUpdateClientUser((clientUserData as ClientUser)?.id || "");
+  const deleteCredentialsMutation = useDeleteClientUser();
 
   const clientData = client as ClientData | undefined;
   const accountsList = (accounts as Account[]) || [];
@@ -76,6 +115,8 @@ export default function ClientDetailPage() {
   const taskListResponse = tasksData as TaskListResponse | undefined;
   const tasksList = taskListResponse?.tasks || [];
   const pendingEamCount = taskListResponse?.pending_eam_count || 0;
+  const clientUser = clientUserData as ClientUser | undefined;
+  const hasCredentials = !clientUserError && !!clientUser;
 
   const getKycBadgeVariant = (status: string) => {
     switch (status) {
@@ -98,6 +139,68 @@ export default function ClientDetailPage() {
       style: "currency",
       currency,
     }).format(amount);
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCreateCredentials = async () => {
+    if (!email) return;
+    try {
+      const result = await createCredentialsMutation.mutateAsync({
+        client_id: clientId,
+        email,
+        password: password || undefined,
+      });
+      if ((result as { temp_password?: string }).temp_password) {
+        setTempPassword((result as { temp_password?: string }).temp_password || null);
+      } else {
+        setCreateCredentialsOpen(false);
+        resetForm();
+      }
+    } catch (error) {
+      console.error("Failed to create credentials:", error);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!clientUser) return;
+    try {
+      const result = await resetPasswordMutation.mutateAsync({ id: clientUser.id });
+      if ((result as { temp_password?: string }).temp_password) {
+        setTempPassword((result as { temp_password?: string }).temp_password || null);
+      }
+    } catch (error) {
+      console.error("Failed to reset password:", error);
+    }
+  };
+
+  const handleToggleActive = async () => {
+    if (!clientUser) return;
+    try {
+      await updateClientUserMutation.mutateAsync({ is_active: !clientUser.is_active });
+    } catch (error) {
+      console.error("Failed to toggle status:", error);
+    }
+  };
+
+  const handleDeleteCredentials = async () => {
+    if (!clientUser) return;
+    if (!confirm("Are you sure you want to delete this client's login credentials?")) return;
+    try {
+      await deleteCredentialsMutation.mutateAsync(clientUser.id);
+    } catch (error) {
+      console.error("Failed to delete credentials:", error);
+    }
+  };
+
+  const resetForm = () => {
+    setEmail("");
+    setPassword("");
+    setTempPassword(null);
   };
 
   const displayName = clientData
@@ -180,6 +283,15 @@ export default function ClientDetailPage() {
               <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
                 {pendingEamCount}
               </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="access">
+            <KeyRound className="mr-2 h-4 w-4" />
+            Login Access
+            {hasCredentials && (
+              <Badge variant={clientUser?.is_active ? "default" : "secondary"} className="ml-2 text-xs">
+                {clientUser?.is_active ? "Active" : "Inactive"}
+              </Badge>
             )}
           </TabsTrigger>
         </TabsList>
@@ -516,7 +628,314 @@ export default function ClientDetailPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Login Access Tab */}
+        <TabsContent value="access" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Login Credentials</CardTitle>
+                  <CardDescription>
+                    Manage this client&apos;s access to the mobile app
+                  </CardDescription>
+                </div>
+                {!hasCredentials && (
+                  <Button onClick={() => setCreateCredentialsOpen(true)}>
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    Create Credentials
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {clientUserLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : hasCredentials && clientUser ? (
+                <div className="space-y-6">
+                  {/* Credentials Info */}
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Login Email</label>
+                      <div className="mt-1 flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{clientUser.email}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Status</label>
+                      <div className="mt-1">
+                        <Badge variant={clientUser.is_active ? "default" : "destructive"}>
+                          {clientUser.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Last Login</label>
+                      <div className="mt-1 text-sm">
+                        {clientUser.last_login_at
+                          ? new Date(clientUser.last_login_at).toLocaleString()
+                          : "Never"}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">MFA Status</label>
+                      <div className="mt-1 flex items-center gap-2">
+                        <ShieldCheck className={`h-4 w-4 ${clientUser.mfa_enabled ? "text-green-600" : "text-muted-foreground"}`} />
+                        <span className="text-sm">
+                          {clientUser.mfa_enabled ? "Enabled" : "Not Enabled"}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">Created</label>
+                      <div className="mt-1 text-sm">
+                        {new Date(clientUser.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setResetPasswordOpen(true)}
+                    >
+                      <KeyRound className="mr-2 h-4 w-4" />
+                      Reset Password
+                    </Button>
+                    <Button
+                      variant={clientUser.is_active ? "outline" : "default"}
+                      onClick={handleToggleActive}
+                      disabled={updateClientUserMutation.isPending}
+                    >
+                      <Power className="mr-2 h-4 w-4" />
+                      {clientUser.is_active ? "Deactivate" : "Activate"}
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDeleteCredentials}
+                      disabled={deleteCredentialsMutation.isPending}
+                    >
+                      Delete Credentials
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <KeyRound className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    This client doesn&apos;t have login credentials yet.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Create credentials to allow them to access the mobile app.
+                  </p>
+                  <Button className="mt-4" onClick={() => setCreateCredentialsOpen(true)}>
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    Create Credentials
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+
+      {/* Create Credentials Dialog */}
+      <Dialog
+        open={createCredentialsOpen}
+        onOpenChange={(open) => {
+          setCreateCredentialsOpen(open);
+          if (!open) resetForm();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Login Credentials</DialogTitle>
+            <DialogDescription>
+              Create login credentials for {displayName} to access the mobile app.
+            </DialogDescription>
+          </DialogHeader>
+
+          {tempPassword ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                <p className="text-sm font-medium text-green-800 mb-2">
+                  Credentials created successfully!
+                </p>
+                <p className="text-sm text-green-700 mb-3">
+                  Share the temporary password with the client. They should change it on first login.
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-2 bg-white rounded border">
+                    <span className="text-sm text-muted-foreground">Email:</span>
+                    <span className="text-sm font-medium">{email}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-white rounded border">
+                    <span className="text-sm text-muted-foreground">Password:</span>
+                    <div className="flex items-center gap-2">
+                      <code className="text-sm font-mono font-bold">{tempPassword}</code>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => copyToClipboard(tempPassword)}
+                      >
+                        {copied ? (
+                          <Check className="h-3 w-3 text-green-600" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={() => {
+                    setCreateCredentialsOpen(false);
+                    resetForm();
+                  }}
+                >
+                  Done
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Email Address</label>
+                <Input
+                  type="email"
+                  placeholder="client@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  This will be the client&apos;s login username.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Password <span className="text-muted-foreground">(optional)</span>
+                </label>
+                <Input
+                  type="password"
+                  placeholder="Leave empty to auto-generate"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  If left empty, a secure temporary password will be generated.
+                </p>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setCreateCredentialsOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreateCredentials}
+                  disabled={!email || createCredentialsMutation.isPending}
+                >
+                  {createCredentialsMutation.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Create Credentials
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog
+        open={resetPasswordOpen}
+        onOpenChange={(open) => {
+          setResetPasswordOpen(open);
+          if (!open) setTempPassword(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Generate a new temporary password for {displayName}.
+            </DialogDescription>
+          </DialogHeader>
+
+          {tempPassword ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+                <p className="text-sm font-medium text-green-800 mb-2">
+                  Password reset successfully!
+                </p>
+                <p className="text-sm text-green-700 mb-3">
+                  Share the new temporary password with the client.
+                </p>
+                <div className="flex items-center justify-between p-2 bg-white rounded border">
+                  <span className="text-sm text-muted-foreground">New Password:</span>
+                  <div className="flex items-center gap-2">
+                    <code className="text-sm font-mono font-bold">{tempPassword}</code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => copyToClipboard(tempPassword)}
+                    >
+                      {copied ? (
+                        <Check className="h-3 w-3 text-green-600" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={() => {
+                    setResetPasswordOpen(false);
+                    setTempPassword(null);
+                  }}
+                >
+                  Done
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
+                <p className="text-sm text-orange-800">
+                  This will generate a new temporary password. The client&apos;s current password will no longer work.
+                </p>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setResetPasswordOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleResetPassword}
+                  disabled={resetPasswordMutation.isPending}
+                >
+                  {resetPasswordMutation.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Reset Password
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Loader2, UserCheck, Plus, MoreHorizontal, Pencil, Trash2, Eye, Blocks } from "lucide-react";
+import { Search, Loader2, UserCheck, Plus, MoreHorizontal, Pencil, Trash2, Eye, Blocks, Clock } from "lucide-react";
 import { useClients, useClient } from "@/hooks/use-api";
 import { useAuth } from "@/contexts/auth-context";
 import { ClientDialog, DeleteClientDialog, ClientModulesDialog, ClientModuleBadges } from "@/components/clients";
@@ -46,7 +47,11 @@ export default function ClientsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [search, setSearch] = useState("");
-  const { data: clients, isLoading, error } = useClients({ search: search || undefined });
+  const [kycFilter, setKycFilter] = useState<string>("all");
+  const { data: clients, isLoading, error } = useClients({ 
+    search: search || undefined,
+    kyc_status: kycFilter === "all" ? undefined : kycFilter,
+  });
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -143,6 +148,20 @@ export default function ClientsPage() {
           )}
         </div>
       </div>
+
+      {/* KYC Status Filter Tabs */}
+      <Tabs value={kycFilter} onValueChange={setKycFilter} className="w-full">
+        <TabsList>
+          <TabsTrigger value="all">All Clients</TabsTrigger>
+          <TabsTrigger value="pending" className="gap-2">
+            <Clock className="h-3 w-3" />
+            Pending KYC
+          </TabsTrigger>
+          <TabsTrigger value="in_progress">In Progress</TabsTrigger>
+          <TabsTrigger value="approved">Approved</TabsTrigger>
+          <TabsTrigger value="rejected">Rejected</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {error && (
         <Card className="border-red-200 bg-red-50">

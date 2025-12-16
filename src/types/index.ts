@@ -440,3 +440,103 @@ export interface ProductSyncUpdate {
   tenant_ids?: string[];
 }
 
+// ============================================================================
+// Client User Types (Login Credentials for Clients)
+// ============================================================================
+
+export interface ClientUser {
+  id: string;
+  client_id: string;
+  tenant_id: string;
+  email: string;
+  is_active: boolean;
+  mfa_enabled: boolean;
+  last_login_at?: string;
+  created_at: string;
+  updated_at: string;
+  // Joined client info
+  client_name?: string;
+  client_type?: string;
+}
+
+export interface ClientUserCreate {
+  client_id: string;
+  email: string;
+  password?: string;
+  send_welcome_email?: boolean;
+}
+
+export interface ClientUserUpdate {
+  email?: string;
+  is_active?: boolean;
+}
+
+export interface ClientUserPasswordReset {
+  new_password?: string;
+  send_email?: boolean;
+}
+
+export interface ClientUserCreateResponse {
+  id: string;
+  client_id: string;
+  email: string;
+  is_active: boolean;
+  temp_password?: string;
+  message: string;
+}
+
+export interface ClientUserListResponse {
+  client_users: ClientUser[];
+  total_count: number;
+  skip: number;
+  limit: number;
+}
+
+export interface PasswordResetResponse {
+  success: boolean;
+  message: string;
+  temp_password?: string;
+}
+
+// ============================================================================
+// Invitation Types (Client Self-Registration)
+// ============================================================================
+
+export type InvitationStatus = "pending" | "used" | "expired" | "cancelled";
+
+export interface Invitation {
+  id: string;
+  code: string;
+  tenant_id: string;
+  tenant_name?: string;
+  email?: string;
+  invitee_name?: string;
+  message?: string;
+  client_id?: string;
+  client_name?: string;
+  status: InvitationStatus;
+  expires_at: string;
+  created_at: string;
+  created_by_user_id?: string;
+  created_by_name?: string;
+  used_at?: string;
+  used_by_client_user_id?: string;
+  is_valid: boolean;
+  is_expired: boolean;
+}
+
+export interface InvitationCreate {
+  email?: string;
+  invitee_name?: string;
+  message?: string;
+  client_id?: string;
+  expires_in_days?: number;
+}
+
+export interface InvitationListResponse {
+  invitations: Invitation[];
+  total_count: number;
+  skip: number;
+  limit: number;
+}
+
