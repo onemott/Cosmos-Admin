@@ -237,12 +237,13 @@ async def get_module_products(
 
     # Get products for this module
     product_repo = ProductRepository(db)
-    products = await product_repo.get_products_for_tenant(
+    product_tuples = await product_repo.get_products_for_tenant(
         tenant_id=tenant_id,
         module_id=module.id,
         visible_only=True,
     )
 
+    # get_products_for_tenant returns tuples of (Product, TenantProduct)
     return [
         ClientProductResponse(
             id=p.id,
@@ -258,7 +259,7 @@ async def get_module_products(
             expected_return=p.expected_return,
             tags=p.extra_data.get("tags", []) if p.extra_data else [],
         )
-        for p in products
+        for p, _ in product_tuples
     ]
 
 

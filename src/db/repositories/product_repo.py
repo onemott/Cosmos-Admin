@@ -3,12 +3,12 @@
 from typing import Optional, Sequence
 from uuid import uuid4
 
-from sqlalchemy import select, or_, and_
+from sqlalchemy import select, or_, and_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src.db.repositories.base import BaseRepository, USE_CURRENT_TENANT
-from src.models.product import Product, ProductCategory
+from src.models.product import Product, ProductCategory, TenantProduct
 from src.models.module import Module, TenantModule
 from src.core.tenancy import get_current_tenant_id
 
@@ -137,15 +137,17 @@ class ProductRepository(BaseRepository[Product]):
         visible_only: bool = True,
         skip: int = 0,
         limit: int = 100,
-    ) -> Sequence[Product]:
+    ) -> Sequence[tuple[Product, Optional[TenantProduct]]]:
         """Get all products available to a tenant.
 
-        Returns:
-        - Platform default products (tenant_id=NULL) - visible to all tenants
-        - Tenant-specific products only from enabled modules
+        Returns tuples of (Product, TenantProduct) where TenantProduct is the
+        tenant's sync record for platform products (None for tenant-created products).
 
-        Platform admins create products and decide visibility.
-        Tenant admins can see visible platform products and hide/show them.
+        Platform products are available if:
+        - is_unlocked_for_all=True, OR
+        - There's a TenantProduct record for this tenant
+
+        Tenant-created products are available if tenant_id matches.
         """
         # Get enabled module IDs for this tenant (core + enabled via TenantModule)
         enabled_modules_query = select(Module.id).where(
@@ -161,16 +163,42 @@ class ProductRepository(BaseRepository[Product]):
             ),
         )
 
-        # Build query:
-        # - Platform defaults (tenant_id=NULL) are always included (no module restriction)
-        # - Tenant-specific products only from enabled modules
-        query = select(Product).where(
-            or_(
-                Product.tenant_id.is_(None),  # Platform defaults - visible to all
-                and_(
-                    Product.tenant_id == tenant_id,  # Tenant-specific
-                    Product.module_id.in_(enabled_modules_query),  # Only from enabled modules
-                ),
+        # Subquery to get product IDs synced to this tenant via TenantProduct
+        synced_product_ids = select(TenantProduct.product_id).where(
+            TenantProduct.tenant_id == tenant_id
+        )
+
+        # Build query for platform products:
+        # - is_unlocked_for_all=True (available to all), OR
+        # - synced to this tenant via TenantProduct
+        # Also include tenant-specific products
+        query = select(Product, TenantProduct).outerjoin(
+            TenantProduct,
+            and_(
+                TenantProduct.product_id == Product.id,
+                TenantProduct.tenant_id == tenant_id,
+            )
+        ).where(
+            and_(
+                # 1. Module must be enabled for this tenant
+                Product.module_id.in_(enabled_modules_query),
+                # 2. Product must be available to this tenant
+                or_(
+                    # Platform products that are unlocked for all
+                    and_(
+                        Product.tenant_id.is_(None),
+                        Product.is_default == True,
+                        Product.is_unlocked_for_all == True,
+                    ),
+                    # Platform products synced to this tenant
+                    and_(
+                        Product.tenant_id.is_(None),
+                        Product.is_default == True,
+                        Product.id.in_(synced_product_ids),
+                    ),
+                    # Tenant-specific products
+                    Product.tenant_id == tenant_id,
+                )
             )
         )
 
@@ -184,7 +212,39 @@ class ProductRepository(BaseRepository[Product]):
             query = query.where(Product.risk_level == risk_level)
 
         if visible_only:
-            query = query.where(Product.is_visible == True)
+            # For platform products, check TenantProduct.is_visible if exists
+            # For tenant products, check Product.is_visible
+            query = query.where(
+                or_(
+                    # Tenant products - check Product.is_visible
+                    and_(
+                        Product.tenant_id == tenant_id,
+                        Product.is_visible == True,
+                    ),
+                    # Platform products with is_unlocked_for_all:
+                    # - If TenantProduct exists (tenant toggled visibility), use TenantProduct.is_visible
+                    # - If no TenantProduct, use Product.is_visible (default)
+                    and_(
+                        Product.tenant_id.is_(None),
+                        Product.is_unlocked_for_all == True,
+                        or_(
+                            # Tenant has a TenantProduct record - check its visibility
+                            TenantProduct.is_visible == True,
+                            # No TenantProduct record - check Product.is_visible
+                            and_(
+                                TenantProduct.id.is_(None),
+                                Product.is_visible == True,
+                            ),
+                        ),
+                    ),
+                    # Platform products synced via TenantProduct (not unlocked_for_all)
+                    and_(
+                        Product.tenant_id.is_(None),
+                        Product.is_unlocked_for_all == False,
+                        TenantProduct.is_visible == True,
+                    ),
+                )
+            )
 
         query = (
             query.options(
@@ -197,7 +257,7 @@ class ProductRepository(BaseRepository[Product]):
         )
 
         result = await self.session.execute(query)
-        return result.scalars().all()
+        return result.all()
 
     async def get_default_products(
         self,
@@ -293,26 +353,97 @@ class ProductRepository(BaseRepository[Product]):
         """Get products grouped by module code.
 
         Returns a dict with module_code as key and list of products as value.
+        Only returns products for modules that are enabled for the tenant
+        and products that are available to the tenant.
         """
-        # First get module IDs for the codes
-        module_query = select(Module).where(Module.code.in_(module_codes))
-        module_result = await self.session.execute(module_query)
+        # Get enabled module IDs for this tenant (core + enabled via TenantModule)
+        # filtered by the requested module codes
+        enabled_modules_query = (
+            select(Module)
+            .where(
+                Module.code.in_(module_codes),
+                Module.is_active == True,
+                or_(
+                    Module.is_core == True,
+                    Module.id.in_(
+                        select(TenantModule.module_id).where(
+                            TenantModule.tenant_id == tenant_id,
+                            TenantModule.is_enabled == True,
+                        )
+                    ),
+                ),
+            )
+        )
+        module_result = await self.session.execute(enabled_modules_query)
         modules = {m.id: m.code for m in module_result.scalars().all()}
 
         if not modules:
-            return {}
+            return {code: [] for code in module_codes}
 
-        # Get products for these modules
-        query = select(Product).where(
+        # Subquery to get product IDs synced to this tenant via TenantProduct
+        synced_product_ids = select(TenantProduct.product_id).where(
+            TenantProduct.tenant_id == tenant_id
+        )
+
+        # Build query for products available to tenant
+        query = select(Product, TenantProduct).outerjoin(
+            TenantProduct,
+            and_(
+                TenantProduct.product_id == Product.id,
+                TenantProduct.tenant_id == tenant_id,
+            )
+        ).where(
             Product.module_id.in_(modules.keys()),
             or_(
+                # Platform products that are unlocked for all
+                and_(
+                    Product.tenant_id.is_(None),
+                    Product.is_default == True,
+                    Product.is_unlocked_for_all == True,
+                ),
+                # Platform products synced to this tenant
+                and_(
+                    Product.tenant_id.is_(None),
+                    Product.is_default == True,
+                    Product.id.in_(synced_product_ids),
+                ),
+                # Tenant-specific products
                 Product.tenant_id == tenant_id,
-                Product.tenant_id.is_(None),
-            ),
+            )
         )
 
         if visible_only:
-            query = query.where(Product.is_visible == True)
+            # For platform products, check TenantProduct.is_visible if exists
+            # For tenant products, check Product.is_visible
+            query = query.where(
+                or_(
+                    # Tenant products - check Product.is_visible
+                    and_(
+                        Product.tenant_id == tenant_id,
+                        Product.is_visible == True,
+                    ),
+                    # Platform products with is_unlocked_for_all:
+                    # - If TenantProduct exists, use TenantProduct.is_visible
+                    # - If no TenantProduct, use Product.is_visible (default)
+                    and_(
+                        Product.tenant_id.is_(None),
+                        Product.is_unlocked_for_all == True,
+                        or_(
+                            TenantProduct.is_visible == True,
+                            and_(
+                                TenantProduct.id.is_(None),
+                                Product.is_visible == True,
+                            ),
+                        ),
+                    ),
+                    # Platform products synced via TenantProduct (not unlocked_for_all)
+                    and_(
+                        Product.tenant_id.is_(None),
+                        Product.is_unlocked_for_all == False,
+                        TenantProduct.is_visible == True,
+                    ),
+                )
+            )
 
         query = query.options(
             selectinload(Product.module),
@@ -320,13 +451,119 @@ class ProductRepository(BaseRepository[Product]):
         ).order_by(Product.category, Product.name)
 
         result = await self.session.execute(query)
-        products = result.scalars().all()
+        rows = result.all()
 
         # Group by module code
         grouped: dict[str, list[Product]] = {code: [] for code in module_codes}
-        for product in products:
+        for row in rows:
+            product = row[0]
             module_code = modules.get(product.module_id)
             if module_code:
                 grouped[module_code].append(product)
 
         return grouped
+
+    # =========================================================================
+    # TenantProduct Management (for platform products sync)
+    # =========================================================================
+
+    async def get_synced_tenant_ids(self, product_id: str) -> list[str]:
+        """Get list of tenant IDs that have this product synced."""
+        query = select(TenantProduct.tenant_id).where(
+            TenantProduct.product_id == product_id
+        )
+        result = await self.session.execute(query)
+        return [row[0] for row in result.all()]
+
+    async def get_tenant_product(
+        self, tenant_id: str, product_id: str
+    ) -> Optional[TenantProduct]:
+        """Get the TenantProduct record for a specific tenant and product."""
+        query = select(TenantProduct).where(
+            TenantProduct.tenant_id == tenant_id,
+            TenantProduct.product_id == product_id,
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+
+    async def sync_product_to_tenants(
+        self, product_id: str, tenant_ids: list[str]
+    ) -> list[TenantProduct]:
+        """Sync a platform product to specified tenants.
+
+        Creates TenantProduct records for each tenant. Skips if already exists.
+        """
+        created = []
+        for tenant_id in tenant_ids:
+            existing = await self.get_tenant_product(tenant_id, product_id)
+            if existing:
+                continue
+
+            tp = TenantProduct(
+                tenant_id=tenant_id,
+                product_id=product_id,
+                is_visible=True,
+            )
+            self.session.add(tp)
+            created.append(tp)
+
+        return created
+
+    async def unsync_product_from_tenants(
+        self, product_id: str, tenant_ids: list[str]
+    ) -> int:
+        """Remove product sync from specified tenants.
+
+        Deletes TenantProduct records. Returns count of deleted records.
+        """
+        stmt = delete(TenantProduct).where(
+            TenantProduct.product_id == product_id,
+            TenantProduct.tenant_id.in_(tenant_ids),
+        )
+        result = await self.session.execute(stmt)
+        return result.rowcount
+
+    async def set_synced_tenants(
+        self, product_id: str, tenant_ids: list[str]
+    ) -> None:
+        """Set the exact list of tenants synced to a product.
+
+        Adds new syncs and removes old ones to match the provided list.
+        """
+        current_tenant_ids = set(await self.get_synced_tenant_ids(product_id))
+        new_tenant_ids = set(tenant_ids)
+
+        # Remove tenants no longer in the list
+        to_remove = current_tenant_ids - new_tenant_ids
+        if to_remove:
+            await self.unsync_product_from_tenants(product_id, list(to_remove))
+
+        # Add new tenants
+        to_add = new_tenant_ids - current_tenant_ids
+        if to_add:
+            await self.sync_product_to_tenants(product_id, list(to_add))
+
+    async def update_tenant_product_visibility(
+        self, tenant_id: str, product_id: str, is_visible: bool
+    ) -> Optional[TenantProduct]:
+        """Update visibility for a tenant's synced product."""
+        tp = await self.get_tenant_product(tenant_id, product_id)
+        if not tp:
+            return None
+
+        tp.is_visible = is_visible
+        return tp
+
+    async def get_with_tenant_products(self, product_id: str) -> Optional[Product]:
+        """Get product with tenant_products relationship loaded."""
+        query = (
+            select(Product)
+            .where(Product.id == product_id)
+            .options(
+                selectinload(Product.module),
+                selectinload(Product.category_rel),
+                selectinload(Product.tenant_products),
+            )
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()

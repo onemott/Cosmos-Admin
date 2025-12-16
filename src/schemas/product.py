@@ -84,10 +84,19 @@ class ProductBase(BaseModel):
 
 
 class ProductCreate(ProductBase):
-    """Product creation schema."""
+    """Product creation schema for tenant-specific products."""
 
     module_id: str = Field(..., description="Module UUID")
     code: str = Field(..., min_length=2, max_length=50, pattern=r"^[a-z0-9_]+$")
+
+
+class PlatformProductCreate(ProductBase):
+    """Product creation schema for platform admin with tenant sync options."""
+
+    module_id: str = Field(..., description="Module UUID")
+    code: str = Field(..., min_length=2, max_length=50, pattern=r"^[a-z0-9_]+$")
+    is_unlocked_for_all: bool = Field(default=False, description="If True, available to all tenants")
+    tenant_ids: Optional[list[str]] = Field(None, description="List of tenant IDs to sync product to (ignored if is_unlocked_for_all=True)")
 
 
 class ProductUpdate(BaseModel):
@@ -116,6 +125,7 @@ class ProductResponse(ProductBase):
     code: str
     is_visible: bool
     is_default: bool
+    is_unlocked_for_all: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -123,6 +133,9 @@ class ProductResponse(ProductBase):
     module_code: Optional[str] = None
     module_name: Optional[str] = None
     category_name: Optional[str] = None
+
+    # For platform products - list of synced tenant IDs (only populated for platform admins)
+    synced_tenant_ids: Optional[list[str]] = None
 
     class Config:
         """Pydantic config."""
@@ -150,3 +163,54 @@ class ProductSummaryResponse(BaseModel):
     is_visible: bool
     is_default: bool
     module_code: Optional[str] = None
+
+
+# ===== TenantProduct Schemas =====
+
+
+class TenantProductResponse(BaseModel):
+    """Tenant-product association response."""
+
+    id: str
+    tenant_id: str
+    product_id: str
+    is_visible: bool
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        """Pydantic config."""
+
+        from_attributes = True
+
+
+class ProductSyncRequest(BaseModel):
+    """Request to sync/unsync a product to tenants."""
+
+    tenant_ids: list[str] = Field(..., description="List of tenant IDs to sync product to")
+
+
+class ProductSyncUpdate(BaseModel):
+    """Request to update product sync settings."""
+
+    is_unlocked_for_all: Optional[bool] = Field(None, description="If True, available to all tenants")
+    tenant_ids: Optional[list[str]] = Field(None, description="List of tenant IDs to sync product to")
+
+
+class PlatformProductUpdate(BaseModel):
+    """Platform product update schema with sync options."""
+
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    name_zh: Optional[str] = Field(None, max_length=255)
+    description: Optional[str] = Field(None, max_length=2000)
+    description_zh: Optional[str] = Field(None, max_length=2000)
+    category: Optional[str] = Field(None, max_length=100)
+    category_id: Optional[str] = None
+    risk_level: Optional[str] = Field(None, max_length=50)
+    min_investment: Optional[Decimal] = None
+    currency: Optional[str] = Field(None, max_length=3)
+    expected_return: Optional[str] = Field(None, max_length=100)
+    is_visible: Optional[bool] = None
+    extra_data: Optional[dict] = None
+    is_unlocked_for_all: Optional[bool] = None
+    tenant_ids: Optional[list[str]] = None

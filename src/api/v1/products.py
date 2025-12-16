@@ -2,6 +2,7 @@
 
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.session import get_db
@@ -11,19 +12,41 @@ from src.api.deps import (
     get_current_tenant_admin,
 )
 from src.db.repositories.product_repo import ProductRepository, ProductCategoryRepository
-from src.models.module import Module
+from src.models.module import Module, TenantModule
+from src.models.product import TenantProduct
+from src.models.tenant import Tenant
 from src.schemas.product import (
     ProductCreate,
     ProductUpdate,
     ProductResponse,
     ProductVisibilityUpdate,
+    PlatformProductCreate,
+    PlatformProductUpdate,
+    ProductSyncUpdate,
 )
 
 router = APIRouter()
 
 
-def _build_product_response(product) -> ProductResponse:
-    """Build product response with joined fields."""
+def _build_product_response(
+    product,
+    tenant_product: Optional[TenantProduct] = None,
+    synced_tenant_ids: Optional[list[str]] = None,
+) -> ProductResponse:
+    """Build product response with joined fields.
+
+    Args:
+        product: The Product model instance
+        tenant_product: Optional TenantProduct for visibility override (platform products)
+        synced_tenant_ids: Optional list of synced tenant IDs (for platform admin view)
+    """
+    # Determine effective visibility
+    # For platform products with TenantProduct, use TenantProduct.is_visible
+    # Otherwise use Product.is_visible
+    effective_visibility = product.is_visible
+    if tenant_product is not None:
+        effective_visibility = tenant_product.is_visible
+
     return ProductResponse(
         id=product.id,
         module_id=product.module_id,
@@ -39,14 +62,16 @@ def _build_product_response(product) -> ProductResponse:
         min_investment=product.min_investment,
         currency=product.currency,
         expected_return=product.expected_return,
-        is_visible=product.is_visible,
+        is_visible=effective_visibility,
         is_default=product.is_default,
+        is_unlocked_for_all=product.is_unlocked_for_all,
         extra_data=product.extra_data,
         created_at=product.created_at,
         updated_at=product.updated_at,
         module_code=product.module.code if product.module else None,
         module_name=product.module.name if product.module else None,
         category_name=product.category_rel.name if product.category_rel else None,
+        synced_tenant_ids=synced_tenant_ids,
     )
 
 
@@ -69,7 +94,9 @@ async def list_products(
 ) -> List[ProductResponse]:
     """List products available to the current user's tenant.
 
-    Returns both platform default products and tenant-specific products.
+    Returns:
+    - Platform products that are unlocked_for_all OR synced to this tenant
+    - Tenant-specific products created by this tenant
     """
     tenant_id = current_user.get("tenant_id")
     if not tenant_id:
@@ -81,15 +108,14 @@ async def list_products(
     # If module_code provided, resolve to module_id
     resolved_module_id = module_id
     if module_code and not module_id:
-        module = await db.execute(
-            db.query(Module).filter(Module.code == module_code).statement
-        )
-        module = module.scalar_one_or_none()
+        query = select(Module).where(Module.code == module_code)
+        result = await db.execute(query)
+        module = result.scalar_one_or_none()
         if module:
             resolved_module_id = module.id
 
     repo = ProductRepository(db)
-    products = await repo.get_products_for_tenant(
+    product_tuples = await repo.get_products_for_tenant(
         tenant_id=tenant_id,
         module_id=resolved_module_id,
         category_id=category_id,
@@ -99,7 +125,8 @@ async def list_products(
         limit=limit,
     )
 
-    return [_build_product_response(p) for p in products]
+    # product_tuples is a list of (Product, TenantProduct) tuples
+    return [_build_product_response(p, tp) for p, tp in product_tuples]
 
 
 @router.get("/defaults", response_model=List[ProductResponse])
@@ -112,6 +139,7 @@ async def list_default_products(
     """List all platform default products (platform admin only).
 
     Platform default products have tenant_id=NULL and is_default=True.
+    Includes synced_tenant_ids for each product.
     """
     repo = ProductRepository(db)
     products = await repo.get_default_products(
@@ -119,7 +147,13 @@ async def list_default_products(
         visible_only=visible_only,
     )
 
-    return [_build_product_response(p) for p in products]
+    # Build response with synced tenant IDs for each product
+    responses = []
+    for product in products:
+        synced_ids = await repo.get_synced_tenant_ids(product.id)
+        responses.append(_build_product_response(product, synced_tenant_ids=synced_ids))
+
+    return responses
 
 
 # ============================================================================
@@ -135,9 +169,16 @@ async def get_product(
 ) -> ProductResponse:
     """Get a specific product by ID.
 
-    Only returns product if it's a platform default or belongs to user's tenant.
+    Access rules:
+    - Tenant products: Only accessible by users from that tenant
+    - Platform products: Only accessible if module is enabled AND product is synced/unlocked
+    - Platform admins can access all products
     """
     tenant_id = current_user.get("tenant_id")
+    is_platform_admin = any(
+        role in current_user.get("roles", [])
+        for role in ["super_admin", "platform_admin"]
+    )
 
     repo = ProductRepository(db)
     product = await repo.get_with_relations(product_id)
@@ -148,14 +189,74 @@ async def get_product(
             detail="Product not found",
         )
 
-    # Check access: platform default (NULL tenant) or same tenant
-    if product.tenant_id is not None and product.tenant_id != tenant_id:
+    # Platform admins can access everything
+    if is_platform_admin:
+        synced_ids = None
+        if product.is_default:
+            synced_ids = await repo.get_synced_tenant_ids(product.id)
+        return _build_product_response(product, synced_tenant_ids=synced_ids)
+
+    # For tenant products, check tenant ownership
+    if product.tenant_id is not None:
+        if product.tenant_id != tenant_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied",
+            )
+        return _build_product_response(product)
+
+    # For platform products, check:
+    # 1. Module is enabled for this tenant
+    # 2. Product is unlocked_for_all OR synced to this tenant
+    if not tenant_id:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User must belong to a tenant",
         )
 
-    return _build_product_response(product)
+    # Check module is enabled for tenant
+    module = product.module
+    if not module:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product module not found",
+        )
+
+    # Module must be active AND (core OR enabled for tenant)
+    if not module.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Module is not active",
+        )
+
+    if not module.is_core:
+        tm_query = select(TenantModule).where(
+            TenantModule.tenant_id == tenant_id,
+            TenantModule.module_id == module.id,
+            TenantModule.is_enabled == True,
+        )
+        tm_result = await db.execute(tm_query)
+        if not tm_result.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Module not enabled for this tenant",
+            )
+
+    # Check product is unlocked for this tenant
+    if product.is_unlocked_for_all:
+        # Check if tenant has visibility preference
+        tenant_product = await repo.get_tenant_product(tenant_id, product_id)
+        return _build_product_response(product, tenant_product)
+
+    # Check if synced via TenantProduct
+    tenant_product = await repo.get_tenant_product(tenant_id, product_id)
+    if not tenant_product:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Product not available for this tenant",
+        )
+
+    return _build_product_response(product, tenant_product)
 
 
 @router.post("/", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
@@ -214,13 +315,15 @@ async def create_product(
 
 @router.post("/defaults", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
 async def create_default_product(
-    product_in: ProductCreate,
+    product_in: PlatformProductCreate,
     db: AsyncSession = Depends(get_db),
     _: dict = Depends(get_current_superuser),
 ) -> ProductResponse:
     """Create a new platform default product (platform admin only).
 
-    Platform default products are available to all tenants.
+    Platform admin chooses:
+    - is_unlocked_for_all=True: Available to all tenants
+    - is_unlocked_for_all=False + tenant_ids: Available only to specified tenants
     """
     # Verify module exists
     module = await db.get(Module, product_in.module_id)
@@ -240,13 +343,31 @@ async def create_default_product(
             detail=f"Default product with code '{product_in.code}' already exists in this module",
         )
 
+    # Validate tenant_ids if provided
+    tenant_ids = product_in.tenant_ids or []
+    if tenant_ids and not product_in.is_unlocked_for_all:
+        for tid in tenant_ids:
+            tenant = await db.get(Tenant, tid)
+            if not tenant:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Tenant '{tid}' not found",
+                )
+
     # Create platform default product
-    product = await repo.create_default_product(product_in.model_dump())
+    product_data = product_in.model_dump(exclude={"tenant_ids"})
+    product = await repo.create_default_product(product_data)
+
+    # Sync to specified tenants (if not unlocked_for_all)
+    if not product_in.is_unlocked_for_all and tenant_ids:
+        await repo.sync_product_to_tenants(product.id, tenant_ids)
+
     await db.commit()
 
-    # Reload with relations
+    # Reload with relations and get synced tenant IDs
     product = await repo.get_with_relations(product.id)
-    return _build_product_response(product)
+    synced_ids = await repo.get_synced_tenant_ids(product.id)
+    return _build_product_response(product, synced_tenant_ids=synced_ids)
 
 
 @router.patch("/{product_id}", response_model=ProductResponse)
@@ -320,8 +441,8 @@ async def update_product_visibility(
 ) -> ProductResponse:
     """Toggle product visibility (tenant admin only).
 
-    Tenants can hide platform default products from their view.
-    For platform defaults, this creates a tenant-specific visibility override.
+    For tenant-created products: Updates Product.is_visible directly.
+    For platform products: Updates TenantProduct.is_visible for this tenant.
     """
     tenant_id = current_user.get("tenant_id")
     if not tenant_id:
@@ -339,39 +460,47 @@ async def update_product_visibility(
             detail="Product not found",
         )
 
-    # Check access
-    if product.tenant_id is not None and product.tenant_id != tenant_id:
+    # Handle tenant-created products
+    if product.tenant_id is not None:
+        if product.tenant_id != tenant_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied",
+            )
+        # Update Product.is_visible directly
+        product = await repo.toggle_visibility(product, visibility_in.is_visible)
+        await db.commit()
+        product = await repo.get_with_relations(product.id)
+        return _build_product_response(product)
+
+    # Handle platform products
+    # Check if tenant has access (either unlocked_for_all or synced via TenantProduct)
+    tenant_product = await repo.get_tenant_product(tenant_id, product_id)
+
+    if product.is_unlocked_for_all:
+        # For unlocked_for_all products, we need to create a TenantProduct record
+        # to track this tenant's visibility preference
+        if not tenant_product:
+            # Create TenantProduct with the desired visibility
+            await repo.sync_product_to_tenants(product_id, [tenant_id])
+            tenant_product = await repo.get_tenant_product(tenant_id, product_id)
+
+        tenant_product.is_visible = visibility_in.is_visible
+        await db.commit()
+        product = await repo.get_with_relations(product.id)
+        return _build_product_response(product, tenant_product)
+
+    # For synced products (not unlocked_for_all), must have TenantProduct record
+    if not tenant_product:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied",
+            detail="Product not synced to this tenant",
         )
 
-    # For platform defaults, create a tenant copy first if hiding
-    # (so tenant has their own visibility control without affecting others)
-    if product.tenant_id is None and not visibility_in.is_visible:
-        # Check if tenant already has a copy
-        existing = await repo.get_by_code(product.code, product.module_id, tenant_id)
-        if existing and existing.tenant_id == tenant_id:
-            # Use existing tenant copy
-            product = existing
-        else:
-            # Create tenant copy with visibility set
-            await repo.copy_defaults_for_tenant(tenant_id, product.module_id)
-            # Get the newly created copy
-            product = await repo.get_by_code(product.code, product.module_id, tenant_id)
-            if not product or product.tenant_id != tenant_id:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to create tenant product copy",
-                )
-
-    # Update visibility
-    product = await repo.toggle_visibility(product, visibility_in.is_visible)
+    tenant_product.is_visible = visibility_in.is_visible
     await db.commit()
-
-    # Reload with relations
     product = await repo.get_with_relations(product.id)
-    return _build_product_response(product)
+    return _build_product_response(product, tenant_product)
 
 
 @router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -417,3 +546,63 @@ async def delete_product(
 
     await repo.delete(product)
     await db.commit()
+
+
+# ============================================================================
+# Platform Product Sync Endpoints
+# ============================================================================
+
+
+@router.patch("/{product_id}/sync", response_model=ProductResponse)
+async def update_product_sync(
+    product_id: str,
+    sync_in: ProductSyncUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_superuser),
+) -> ProductResponse:
+    """Update sync settings for a platform product (platform admin only).
+
+    Allows updating:
+    - is_unlocked_for_all: If True, available to all tenants
+    - tenant_ids: List of specific tenants to sync to (only used if is_unlocked_for_all=False)
+    """
+    repo = ProductRepository(db)
+    product = await repo.get_with_relations(product_id)
+
+    if not product:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Product not found",
+        )
+
+    # Only platform products can have sync settings updated
+    if product.tenant_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only platform products can have sync settings",
+        )
+
+    # Update is_unlocked_for_all if provided
+    if sync_in.is_unlocked_for_all is not None:
+        product.is_unlocked_for_all = sync_in.is_unlocked_for_all
+
+    # Update tenant syncs if provided
+    if sync_in.tenant_ids is not None:
+        # Validate tenant IDs
+        for tid in sync_in.tenant_ids:
+            tenant = await db.get(Tenant, tid)
+            if not tenant:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Tenant '{tid}' not found",
+                )
+
+        # Set the exact list of synced tenants
+        await repo.set_synced_tenants(product_id, sync_in.tenant_ids)
+
+    await db.commit()
+
+    # Reload with relations and get synced tenant IDs
+    product = await repo.get_with_relations(product.id)
+    synced_ids = await repo.get_synced_tenant_ids(product.id)
+    return _build_product_response(product, synced_tenant_ids=synced_ids)

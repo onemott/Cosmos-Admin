@@ -10,7 +10,7 @@ from src.models.transaction import Transaction
 from src.models.document import Document
 from src.models.task import Task, TaskType, TaskStatus, TaskPriority, WorkflowState, ApprovalAction
 from src.models.module import Module, TenantModule, ClientModule, ModuleCategory
-from src.models.product import Product, ProductCategory
+from src.models.product import Product, ProductCategory, TenantProduct
 from src.models.audit_log import AuditLog
 
 __all__ = [
@@ -40,6 +40,7 @@ __all__ = [
     "ModuleCategory",
     "Product",
     "ProductCategory",
+    "TenantProduct",
     "AuditLog",
 ]
 

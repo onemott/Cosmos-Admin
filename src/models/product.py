@@ -23,6 +23,48 @@ if TYPE_CHECKING:
     from src.models.module import Module
 
 
+class TenantProduct(Base, TimestampMixin):
+    """Tenant-product association for platform products.
+
+    Tracks which tenants have access to platform-created products
+    and their visibility preferences.
+
+    Only used for platform products (is_default=True).
+    Tenant-created products use tenant_id directly on Product.
+    """
+
+    __tablename__ = "tenant_products"
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        primary_key=True,
+        default=lambda: str(uuid4()),
+    )
+    tenant_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    product_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=False),
+        ForeignKey("products.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # Tenant admin can hide synced products from their users
+    is_visible: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # Relationships
+    tenant: Mapped["Tenant"] = relationship("Tenant")
+    product: Mapped["Product"] = relationship("Product", back_populates="tenant_products")
+
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "product_id", name="uq_tenant_product"),
+    )
+
+
 class ProductCategory(Base, TimestampMixin):
     """Product categories - can be platform defaults or tenant-specific.
 
@@ -122,6 +164,7 @@ class Product(Base, TimestampMixin):
     # Status
     is_visible: Mapped[bool] = mapped_column(Boolean, default=True)
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)  # True if platform-created
+    is_unlocked_for_all: Mapped[bool] = mapped_column(Boolean, default=False)  # If True, available to all tenants without TenantProduct
 
     # Flexible data for additional attributes (tags, features, etc.)
     extra_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
@@ -131,6 +174,9 @@ class Product(Base, TimestampMixin):
     tenant: Mapped[Optional["Tenant"]] = relationship("Tenant")
     category_rel: Mapped[Optional["ProductCategory"]] = relationship(
         "ProductCategory", back_populates="products"
+    )
+    tenant_products: Mapped[list["TenantProduct"]] = relationship(
+        "TenantProduct", back_populates="product", cascade="all, delete-orphan"
     )
 
     __table_args__ = (
