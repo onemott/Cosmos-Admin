@@ -12,6 +12,7 @@ from src.models.task import Task, TaskType, TaskStatus, TaskPriority, WorkflowSt
 from src.models.module import Module, TenantModule, ClientModule, ModuleCategory
 from src.models.product import Product, ProductCategory, TenantProduct
 from src.models.audit_log import AuditLog
+from src.models.invitation import Invitation, InvitationStatus
 
 __all__ = [
     "Tenant",
@@ -42,5 +43,7 @@ __all__ = [
     "ProductCategory",
     "TenantProduct",
     "AuditLog",
+    "Invitation",
+    "InvitationStatus",
 ]
 

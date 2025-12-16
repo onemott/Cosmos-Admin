@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from src.models.user import User
     from src.models.client import Client
     from src.models.module import TenantModule
+    from src.models.invitation import Invitation
 
 
 class Tenant(Base, TimestampMixin):
@@ -42,5 +43,8 @@ class Tenant(Base, TimestampMixin):
     clients: Mapped[list["Client"]] = relationship("Client", back_populates="tenant")
     modules: Mapped[list["TenantModule"]] = relationship(
         "TenantModule", back_populates="tenant"
+    )
+    invitations: Mapped[list["Invitation"]] = relationship(
+        "Invitation", back_populates="tenant"
     )
 

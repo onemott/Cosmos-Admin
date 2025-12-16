@@ -34,6 +34,7 @@ async def list_clients(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     search: Optional[str] = Query(None),
+    kyc_status: Optional[str] = Query(None, description="Filter by KYC status (pending, in_progress, approved, rejected, expired)"),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ) -> List[ClientSummaryResponse]:
@@ -59,6 +60,10 @@ async def list_clients(
         )
     else:
         clients = await repo.get_clients_by_tenant(tenant_id, skip=skip, limit=limit)
+
+    # Apply kyc_status filter if provided
+    if kyc_status:
+        clients = [c for c in clients if c.kyc_status == kyc_status]
 
     # Build summary responses with AUM
     result = []

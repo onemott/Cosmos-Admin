@@ -1,5 +1,7 @@
 """Authentication and security utilities."""
 
+import secrets
+import string
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
@@ -39,6 +41,35 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def hash_password(password: str) -> str:
     """Hash a password."""
     return pwd_context.hash(password)
+
+
+def generate_temp_password(length: int = 12) -> str:
+    """Generate a secure temporary password.
+    
+    Format: Mix of letters, digits, and special characters.
+    Avoids confusing characters (0, O, l, 1, I).
+    """
+    # Characters that are easy to read and type
+    letters = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ'
+    digits = '23456789'
+    special = '!@#$%&*'
+    
+    # Ensure at least one of each type
+    password = [
+        secrets.choice(letters),
+        secrets.choice(letters.upper()),
+        secrets.choice(digits),
+        secrets.choice(special),
+    ]
+    
+    # Fill the rest
+    all_chars = letters + digits + special
+    password.extend(secrets.choice(all_chars) for _ in range(length - 4))
+    
+    # Shuffle
+    secrets.SystemRandom().shuffle(password)
+    
+    return ''.join(password)
 
 
 def create_access_token(

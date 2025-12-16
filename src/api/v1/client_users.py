@@ -21,7 +21,7 @@ from src.db.session import get_db
 from src.api.deps import get_current_user, get_current_tenant_admin
 from src.models.client_user import ClientUser
 from src.models.client import Client
-from src.core.security import get_password_hash, generate_temp_password
+from src.core.security import hash_password, generate_temp_password
 
 router = APIRouter()
 
@@ -280,7 +280,7 @@ async def create_client_user(
         client_id=data.client_id,
         tenant_id=tenant_id,
         email=data.email,
-        hashed_password=get_password_hash(password),
+        hashed_password=hash_password(password),
         is_active=True,
     )
     
@@ -391,7 +391,7 @@ async def reset_client_password(
         password = generate_temp_password()
         temp_password = password
     
-    client_user.hashed_password = get_password_hash(password)
+    client_user.hashed_password = hash_password(password)
     
     await db.commit()
     

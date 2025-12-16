@@ -4,7 +4,7 @@ from fastapi import APIRouter
 
 from src.api.v1 import auth, tenants, users, clients, accounts, holdings, transactions
 from src.api.v1 import documents, tasks, modules, reports, stats, roles
-from src.api.v1 import categories, products
+from src.api.v1 import categories, products, invitations, client_users
 from src.api.v1 import client_auth, client_portfolio, client_documents, client_tasks, client_products
 
 router = APIRouter()
@@ -15,6 +15,8 @@ router.include_router(tenants.router, prefix="/tenants", tags=["Tenants"])
 router.include_router(users.router, prefix="/users", tags=["Users"])
 router.include_router(roles.router, prefix="/roles", tags=["Roles"])
 router.include_router(clients.router, prefix="/clients", tags=["Clients"])
+router.include_router(client_users.router, prefix="/client-users", tags=["Client Users"])
+router.include_router(invitations.router, prefix="/invitations", tags=["Invitations"])
 router.include_router(accounts.router, prefix="/accounts", tags=["Accounts"])
 router.include_router(holdings.router, prefix="/holdings", tags=["Holdings"])
 router.include_router(transactions.router, prefix="/transactions", tags=["Transactions"])
