@@ -150,6 +150,38 @@ class ApiClient {
   async delete(endpoint: string): Promise<void> {
     return this.request<void>(endpoint, { method: "DELETE" });
   }
+
+  async upload<T>(endpoint: string, formData: FormData): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+    const accessToken = getAccessToken();
+    
+    const headers: HeadersInit = {};
+    if (accessToken) {
+      headers["Authorization"] = `Bearer ${accessToken}`;
+    }
+    // Don't set Content-Type - browser will set it with boundary for multipart/form-data
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || `API Error: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  getDownloadUrl(endpoint: string): string {
+    const accessToken = getAccessToken();
+    const url = `${this.baseUrl}${endpoint}`;
+    // For direct downloads, we return the URL with token as query param
+    // Note: In production, you might want to use a different auth mechanism
+    return accessToken ? `${url}?token=${accessToken}` : url;
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);
@@ -218,6 +250,41 @@ export const api = {
       apiClient.post(`/clients/${clientId}/modules/${moduleId}/enable`),
     disableModule: (clientId: string, moduleId: string) =>
       apiClient.post(`/clients/${clientId}/modules/${moduleId}/disable`),
+  },
+
+  // Accounts
+  accounts: {
+    list: (params?: { client_id?: string; is_active?: boolean; skip?: number; limit?: number }) => {
+      const searchParams = new URLSearchParams();
+      if (params?.skip !== undefined) searchParams.set("skip", String(params.skip));
+      if (params?.limit !== undefined) searchParams.set("limit", String(params.limit));
+      if (params?.client_id) searchParams.set("client_id", params.client_id);
+      if (params?.is_active !== undefined) searchParams.set("is_active", String(params.is_active));
+      return apiClient.get(`/accounts?${searchParams}`);
+    },
+    get: (id: string) => apiClient.get(`/accounts/${id}`),
+    create: (data: {
+      client_id: string;
+      account_number: string;
+      account_name: string;
+      account_type?: string;
+      currency?: string;
+      total_value?: number;
+      cash_balance?: number;
+    }) => apiClient.post("/accounts", data),
+    update: (id: string, data: {
+      account_name?: string;
+      account_type?: string;
+      currency?: string;
+      total_value?: number;
+      cash_balance?: number;
+      is_active?: boolean;
+    }) => apiClient.patch(`/accounts/${id}`, data),
+    reassign: (id: string, clientId: string) =>
+      apiClient.patch(`/accounts/${id}/client`, { client_id: clientId }),
+    delete: (id: string, hardDelete?: boolean) =>
+      apiClient.delete(`/accounts/${id}?hard_delete=${hardDelete || false}`),
+    reactivate: (id: string) => apiClient.post(`/accounts/${id}/reactivate`),
   },
 
   // Modules
@@ -390,6 +457,53 @@ export const api = {
       apiClient.patch(`/products/${productId}/sync`, data),
     // Delete a product
     delete: (productId: string) => apiClient.delete(`/products/${productId}`),
+    // Product documents
+    documents: {
+      list: (productId: string) => apiClient.get(`/products/${productId}/documents`),
+      get: (productId: string, documentId: string) =>
+        apiClient.get(`/products/${productId}/documents/${documentId}`),
+      upload: (productId: string, file: File, name?: string, description?: string) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (name) formData.append("name", name);
+        if (description) formData.append("description", description);
+        return apiClient.upload(`/products/${productId}/documents/upload`, formData);
+      },
+      delete: (productId: string, documentId: string) =>
+        apiClient.delete(`/products/${productId}/documents/${documentId}`),
+      downloadUrl: (productId: string, documentId: string) =>
+        `${API_BASE_URL}/products/${productId}/documents/${documentId}/download`,
+    },
+  },
+
+  // Documents (Client Documents)
+  documents: {
+    list: (params?: { client_id?: string; document_type?: string; skip?: number; limit?: number }) => {
+      const searchParams = new URLSearchParams();
+      if (params?.skip !== undefined) searchParams.set("skip", String(params.skip));
+      if (params?.limit !== undefined) searchParams.set("limit", String(params.limit));
+      if (params?.client_id) searchParams.set("client_id", params.client_id);
+      if (params?.document_type) searchParams.set("document_type", params.document_type);
+      return apiClient.get(`/documents?${searchParams}`);
+    },
+    get: (documentId: string) => apiClient.get(`/documents/${documentId}`),
+    upload: (
+      clientId: string,
+      file: File,
+      documentType: string,
+      name?: string,
+      description?: string
+    ) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("client_id", clientId);
+      formData.append("document_type", documentType);
+      if (name) formData.append("name", name);
+      if (description) formData.append("description", description);
+      return apiClient.upload("/documents/upload", formData);
+    },
+    delete: (documentId: string) => apiClient.delete(`/documents/${documentId}`),
+    downloadUrl: (documentId: string) => `${API_BASE_URL}/documents/${documentId}/download`,
   },
 
   // Client Users (Client Login Credentials)

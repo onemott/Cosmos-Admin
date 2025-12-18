@@ -17,6 +17,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Loader2,
   ArrowLeft,
   Mail,
@@ -25,7 +32,6 @@ import {
   Briefcase,
   User,
   Building2,
-  Upload,
   ClipboardList,
   AlertTriangle,
   ExternalLink,
@@ -34,19 +40,28 @@ import {
   Copy,
   Check,
   ShieldCheck,
+  MoreHorizontal,
+  Plus,
+  Link2,
+  Pencil,
+  Unlink,
+  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import {
   useClient,
   useClientAccounts,
-  useClientDocuments,
   useClientTasks,
   useClientUserByClient,
   useCreateClientUser,
   useUpdateClientUser,
   useResetClientUserPassword,
   useDeleteClientUser,
+  useDeleteAccount,
+  useReactivateAccount,
 } from "@/hooks/use-api";
+import { AccountDialog, LinkAccountDialog } from "@/components/accounts";
+import { ClientDocuments } from "@/components/clients";
 import type { TaskSummary, TaskListResponse, ClientUser } from "@/types";
 
 interface ClientData {
@@ -76,14 +91,6 @@ interface Account {
   is_active: boolean;
 }
 
-interface Document {
-  id: string;
-  name: string;
-  document_type: string;
-  file_path: string;
-  created_at: string;
-}
-
 export default function ClientDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -96,10 +103,23 @@ export default function ClientDetailPage() {
   const [password, setPassword] = useState("");
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  
+  // Account management state
+  const [createAccountOpen, setCreateAccountOpen] = useState(false);
+  const [linkAccountOpen, setLinkAccountOpen] = useState(false);
+  const [editAccountOpen, setEditAccountOpen] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<{
+    id: string;
+    account_number: string;
+    account_name: string;
+    account_type: string;
+    currency: string;
+    total_value: number;
+    cash_balance: number;
+  } | null>(null);
 
   const { data: client, isLoading, error } = useClient(clientId);
-  const { data: accounts, isLoading: accountsLoading } = useClientAccounts(clientId);
-  const { data: documents, isLoading: documentsLoading } = useClientDocuments(clientId);
+  const { data: accounts, isLoading: accountsLoading, refetch: refetchAccounts } = useClientAccounts(clientId);
   const { data: tasksData, isLoading: tasksLoading } = useClientTasks(clientId);
   const { data: clientUserData, isLoading: clientUserLoading, error: clientUserError } = useClientUserByClient(clientId);
 
@@ -108,10 +128,13 @@ export default function ClientDetailPage() {
   const resetPasswordMutation = useResetClientUserPassword();
   const updateClientUserMutation = useUpdateClientUser((clientUserData as ClientUser)?.id || "");
   const deleteCredentialsMutation = useDeleteClientUser();
+  
+  // Account management mutations
+  const deleteAccountMutation = useDeleteAccount();
+  const reactivateAccountMutation = useReactivateAccount();
 
   const clientData = client as ClientData | undefined;
   const accountsList = (accounts as Account[]) || [];
-  const documentsList = (documents as Document[]) || [];
   const taskListResponse = tasksData as TaskListResponse | undefined;
   const tasksList = taskListResponse?.tasks || [];
   const pendingEamCount = taskListResponse?.pending_eam_count || 0;
@@ -274,7 +297,7 @@ export default function ClientDetailPage() {
           </TabsTrigger>
           <TabsTrigger value="documents">
             <FileText className="mr-2 h-4 w-4" />
-            Documents ({documentsList.length})
+            Documents
           </TabsTrigger>
           <TabsTrigger value="tasks" className="relative">
             <ClipboardList className="mr-2 h-4 w-4" />
@@ -425,10 +448,31 @@ export default function ClientDetailPage() {
         <TabsContent value="accounts" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Investment Accounts</CardTitle>
-              <CardDescription>
-                All accounts associated with this client
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Investment Accounts</CardTitle>
+                  <CardDescription>
+                    All accounts associated with this client
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setLinkAccountOpen(true)}
+                  >
+                    <Link2 className="mr-2 h-4 w-4" />
+                    Link Existing
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setCreateAccountOpen(true)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Account
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               {accountsLoading ? (
@@ -440,6 +484,9 @@ export default function ClientDetailPage() {
                   <Briefcase className="mx-auto h-12 w-12 text-muted-foreground/50" />
                   <p className="mt-4 text-sm text-muted-foreground">
                     No accounts found for this client.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Create a new account or link an existing one.
                   </p>
                 </div>
               ) : (
@@ -463,13 +510,58 @@ export default function ClientDetailPage() {
                           {account.account_number}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-medium">
-                          {formatCurrency(account.total_value, account.currency)}
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <div className="font-medium">
+                            {formatCurrency(account.total_value, account.currency)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Cash: {formatCurrency(account.cash_balance, account.currency)}
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          Cash: {formatCurrency(account.cash_balance, account.currency)}
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedAccount(account);
+                                setEditAccountOpen(true);
+                              }}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            {account.is_active ? (
+                              <DropdownMenuItem
+                                onClick={async () => {
+                                  if (confirm("Are you sure you want to unlink this account? It will be marked as inactive.")) {
+                                    await deleteAccountMutation.mutateAsync({ id: account.id });
+                                    refetchAccounts();
+                                  }
+                                }}
+                                className="text-destructive"
+                              >
+                                <Unlink className="mr-2 h-4 w-4" />
+                                Unlink Account
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={async () => {
+                                  await reactivateAccountMutation.mutateAsync(account.id);
+                                  refetchAccounts();
+                                }}
+                              >
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Reactivate
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   ))}
@@ -483,57 +575,13 @@ export default function ClientDetailPage() {
         <TabsContent value="documents" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Documents</CardTitle>
-                  <CardDescription>
-                    KYC documents, statements, and other files
-                  </CardDescription>
-                </div>
-                <Button variant="outline" size="sm" disabled>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload Document
-                </Button>
-              </div>
+              <CardTitle>Documents</CardTitle>
+              <CardDescription>
+                KYC documents, statements, and other client files
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {documentsLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-              ) : documentsList.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                  <p className="mt-4 text-sm text-muted-foreground">
-                    No documents uploaded yet.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Document upload will be available soon.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {documentsList.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
-                    >
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <div>
-                          <div className="text-sm font-medium">{doc.name}</div>
-                          <div className="text-xs text-muted-foreground capitalize">
-                            {doc.document_type.replace("_", " ")}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(doc.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <ClientDocuments clientId={clientId} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -936,6 +984,34 @@ export default function ClientDetailPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Account Dialogs */}
+      <AccountDialog
+        open={createAccountOpen}
+        onOpenChange={setCreateAccountOpen}
+        clientId={clientId}
+        mode="create"
+        onSuccess={() => refetchAccounts()}
+      />
+
+      <AccountDialog
+        open={editAccountOpen}
+        onOpenChange={(open) => {
+          setEditAccountOpen(open);
+          if (!open) setSelectedAccount(null);
+        }}
+        clientId={clientId}
+        mode="edit"
+        account={selectedAccount || undefined}
+        onSuccess={() => refetchAccounts()}
+      />
+
+      <LinkAccountDialog
+        open={linkAccountOpen}
+        onOpenChange={setLinkAccountOpen}
+        clientId={clientId}
+        onSuccess={() => refetchAccounts()}
+      />
     </div>
   );
 }

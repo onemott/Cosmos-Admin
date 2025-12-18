@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -45,6 +46,7 @@ import {
 } from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
 import { Product, ProductCategory, Tenant } from "@/types";
+import { ProductDocuments } from "./product-documents";
 
 const riskLevels = ["conservative", "moderate", "balanced", "growth", "aggressive"] as const;
 const currencies = ["USD", "HKD", "CNY", "EUR", "GBP", "SGD", "JPY"] as const;
@@ -114,13 +116,23 @@ export function PlatformProductDialog({
     },
   });
 
-  const isUnlockedForAll = form.watch("is_unlocked_for_all");
-  const selectedTenantIds = form.watch("tenant_ids") || [];
+  // Use local state for UI updates to avoid infinite re-render loops with Radix
+  const [isUnlockedForAll, setIsUnlockedForAll] = useState(false);
+  const [selectedTenantIds, setSelectedTenantIds] = useState<string[]>([]);
+
+  // Sync form values to local state
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      setIsUnlockedForAll(value.is_unlocked_for_all ?? false);
+      setSelectedTenantIds(value.tenant_ids ?? []);
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   // Reset form when dialog opens/closes or product changes
   useEffect(() => {
     if (open && product) {
-      form.reset({
+      const formData = {
         module_id: product.module_id,
         code: product.code,
         name: product.name,
@@ -135,7 +147,11 @@ export function PlatformProductDialog({
         expected_return: product.expected_return || "",
         is_unlocked_for_all: product.is_unlocked_for_all || false,
         tenant_ids: product.synced_tenant_ids || [],
-      });
+      };
+      form.reset(formData);
+      // Also update local state
+      setIsUnlockedForAll(formData.is_unlocked_for_all);
+      setSelectedTenantIds(formData.tenant_ids);
     } else if (open && !product) {
       form.reset({
         module_id: "",
@@ -153,10 +169,16 @@ export function PlatformProductDialog({
         is_unlocked_for_all: false,
         tenant_ids: [],
       });
+      // Also update local state
+      setIsUnlockedForAll(false);
+      setSelectedTenantIds([]);
     }
   }, [open, product, form]);
 
   const handleSubmit = async (data: PlatformProductFormData) => {
+    // Get tenant_ids directly from form state since it may not be in the validated data
+    const currentTenantIds = form.getValues("tenant_ids") || [];
+    
     try {
       const submitData: Record<string, any> = {
         module_id: data.module_id,
@@ -175,9 +197,10 @@ export function PlatformProductDialog({
       if (data.category_id) submitData.category_id = data.category_id;
       if (data.expected_return?.trim()) submitData.expected_return = data.expected_return.trim();
 
-      // Only include tenant_ids if not unlocked for all
+      // Use form.getValues for tenant_ids since it may not be in validated data object
+      const tenantIdsToSave = currentTenantIds;
       if (!data.is_unlocked_for_all) {
-        submitData.tenant_ids = selectedTenantIds;
+        submitData.tenant_ids = tenantIdsToSave;
       }
 
       if (isEdit) {
@@ -200,7 +223,7 @@ export function PlatformProductDialog({
           productId: product!.id,
           data: {
             is_unlocked_for_all: data.is_unlocked_for_all,
-            tenant_ids: data.is_unlocked_for_all ? undefined : selectedTenantIds,
+            tenant_ids: data.is_unlocked_for_all ? undefined : tenantIdsToSave,
           },
         });
 
@@ -237,9 +260,11 @@ export function PlatformProductDialog({
   const toggleTenant = (tenantId: string) => {
     const currentIds = form.getValues("tenant_ids") || [];
     const newIds = currentIds.includes(tenantId)
-      ? currentIds.filter((id) => id !== tenantId)
+      ? currentIds.filter((id: string) => id !== tenantId)
       : [...currentIds, tenantId];
-    form.setValue("tenant_ids", newIds);
+    // Must use shouldValidate and shouldDirty for react-hook-form to properly track changes
+    form.setValue("tenant_ids", newIds, { shouldValidate: true, shouldDirty: true });
+    setSelectedTenantIds(newIds);
   };
 
   const isLoading =
@@ -247,22 +272,18 @@ export function PlatformProductDialog({
     updateMutation.isPending ||
     updateSyncMutation.isPending;
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {isEdit ? "Edit Platform Product" : "Create Platform Product"}
-          </DialogTitle>
-          <DialogDescription>
-            {isEdit
-              ? "Update product information and tenant access settings."
-              : "Create a new platform product and choose which tenants can access it."}
-          </DialogDescription>
-        </DialogHeader>
+  const [activeTab, setActiveTab] = useState("details");
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+  // Reset tab when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setActiveTab("details");
+    }
+  }, [open]);
+
+  const formContent = (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             {/* Module Selection */}
             <FormField
               control={form.control}
@@ -491,7 +512,10 @@ export function PlatformProductDialog({
                     <FormControl>
                       <Checkbox
                         checked={field.value}
-                        onCheckedChange={field.onChange}
+                        onCheckedChange={(checked) => {
+                          field.onChange(checked);
+                          setIsUnlockedForAll(!!checked);
+                        }}
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
@@ -540,32 +564,32 @@ export function PlatformProductDialog({
                       </p>
                     ) : (
                       <div className="space-y-2">
-                        {tenants.map((tenant) => (
-                          <div
-                            key={tenant.id}
-                            className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer hover:bg-muted ${
-                              selectedTenantIds.includes(tenant.id)
-                                ? "bg-muted"
-                                : ""
-                            }`}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              toggleTenant(tenant.id);
-                            }}
-                          >
-                            <Checkbox
-                              checked={selectedTenantIds.includes(tenant.id)}
-                              onCheckedChange={() => toggleTenant(tenant.id)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">{tenant.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {tenant.slug}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
+                        {tenants.map((tenant) => {
+                          const isSelected = selectedTenantIds.includes(tenant.id);
+                          return (
+                            <label
+                              key={tenant.id}
+                              className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer hover:bg-muted ${
+                                isSelected ? "bg-muted" : ""
+                              }`}
+                            >
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={(checked) => {
+                                  if (checked !== isSelected) {
+                                    toggleTenant(tenant.id);
+                                  }
+                                }}
+                              />
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">{tenant.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {tenant.slug}
+                                </p>
+                              </div>
+                            </label>
+                          );
+                        })}
                       </div>
                     )}
                   </ScrollArea>
@@ -588,6 +612,38 @@ export function PlatformProductDialog({
             </div>
           </form>
         </Form>
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {isEdit ? "Edit Platform Product" : "Create Platform Product"}
+          </DialogTitle>
+          <DialogDescription>
+            {isEdit
+              ? "Update product information and tenant access settings."
+              : "Create a new platform product and choose which tenants can access it."}
+          </DialogDescription>
+        </DialogHeader>
+
+        {isEdit ? (
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="documents">Documents</TabsTrigger>
+            </TabsList>
+            <TabsContent value="details" className="mt-4">
+              {formContent}
+            </TabsContent>
+            <TabsContent value="documents" className="mt-4">
+              <ProductDocuments productId={product!.id} />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          formContent
+        )}
       </DialogContent>
     </Dialog>
   );

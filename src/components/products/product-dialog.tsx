@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProductForm } from "./product-form";
+import { ProductDocuments } from "./product-documents";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/use-api";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types";
@@ -23,16 +25,19 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct(product?.id || "");
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("details");
 
   const isEdit = !!product;
 
-  // Reset mutations when dialog closes
+  // Reset mutations and tab when dialog closes
   useEffect(() => {
     if (!open) {
       createMutation.reset();
       updateMutation.reset();
+      setActiveTab("details");
     }
-  }, [open, createMutation, updateMutation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handleSubmit = async (data: any) => {
     try {
@@ -105,12 +110,32 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
           </DialogDescription>
         </DialogHeader>
 
-        <ProductForm
-          defaultValues={defaultValues}
-          onSubmit={handleSubmit}
-          isLoading={isLoading}
-          mode={isEdit ? "edit" : "create"}
-        />
+        {isEdit ? (
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="documents">Documents</TabsTrigger>
+            </TabsList>
+            <TabsContent value="details" className="mt-4">
+              <ProductForm
+                defaultValues={defaultValues}
+                onSubmit={handleSubmit}
+                isLoading={isLoading}
+                mode="edit"
+              />
+            </TabsContent>
+            <TabsContent value="documents" className="mt-4">
+              <ProductDocuments productId={product.id} />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <ProductForm
+            defaultValues={defaultValues}
+            onSubmit={handleSubmit}
+            isLoading={isLoading}
+            mode="create"
+          />
+        )}
 
         {mutationError && (
           <p className="text-sm text-destructive mt-2">

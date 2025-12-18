@@ -540,3 +540,60 @@ export interface InvitationListResponse {
   limit: number;
 }
 
+// ============================================================================
+// Document Types
+// ============================================================================
+
+export type DocumentType = "kyc" | "statement" | "report" | "contract" | "tax" | "compliance" | "other";
+
+export type DocumentStatus = "pending" | "approved" | "rejected" | "expired";
+
+export interface ProductDocument {
+  id: string;
+  name: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  description?: string;
+  created_at: string;
+  uploaded_by_id?: string;
+}
+
+export interface ProductDocumentList {
+  documents: ProductDocument[];
+  total_count: number;
+}
+
+export interface ClientDocument {
+  id: string;
+  name: string;
+  document_type: DocumentType;
+  status: DocumentStatus;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  description?: string;
+  created_at: string;
+  uploaded_by_id?: string;
+  client_id?: string;
+  product_id?: string;
+}
+
+export interface ClientDocumentList {
+  documents: ClientDocument[];
+  total_count: number;
+}
+
+export interface DocumentUploadResponse {
+  id: string;
+  name: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  document_type: string;
+  status: string;
+  description?: string;
+  created_at: string;
+  uploaded_by_id?: string;
+}
+

@@ -199,6 +199,93 @@ export function useClientAccounts(id: string) {
   });
 }
 
+// Account Management Hooks
+export function useAccounts(params?: { client_id?: string; is_active?: boolean; skip?: number; limit?: number }) {
+  return useQuery({
+    queryKey: ["accounts", params],
+    queryFn: () => api.accounts.list(params),
+  });
+}
+
+export function useAccount(id: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["accounts", id],
+    queryFn: () => api.accounts.get(id),
+    enabled: options?.enabled !== undefined ? options.enabled : !!id,
+  });
+}
+
+export function useCreateAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      client_id: string;
+      account_number: string;
+      account_name: string;
+      account_type?: string;
+      currency?: string;
+      total_value?: number;
+      cash_balance?: number;
+    }) => api.accounts.create(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["clients", variables.client_id, "accounts"] });
+    },
+  });
+}
+
+export function useUpdateAccount(id: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      account_name?: string;
+      account_type?: string;
+      currency?: string;
+      total_value?: number;
+      cash_balance?: number;
+      is_active?: boolean;
+    }) => api.accounts.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+    },
+  });
+}
+
+export function useReassignAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ accountId, clientId }: { accountId: string; clientId: string }) =>
+      api.accounts.reassign(accountId, clientId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+    },
+  });
+}
+
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, hardDelete }: { id: string; hardDelete?: boolean }) =>
+      api.accounts.delete(id, hardDelete),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+    },
+  });
+}
+
+export function useReactivateAccount() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.accounts.reactivate(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+    },
+  });
+}
+
 export function useClientDocuments(id: string) {
   return useQuery({
     queryKey: ["clients", id, "documents"],
@@ -674,6 +761,106 @@ export function useUpdateProductSync() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["products", variables.productId] });
+    },
+  });
+}
+
+// ============================================================================
+// Product Documents
+// ============================================================================
+
+export function useProductDocuments(productId: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["products", productId, "documents"],
+    queryFn: () => api.products.documents.list(productId),
+    enabled: options?.enabled !== undefined ? options.enabled : !!productId,
+  });
+}
+
+export function useUploadProductDocument(productId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      file,
+      name,
+      description,
+    }: {
+      file: File;
+      name?: string;
+      description?: string;
+    }) => api.products.documents.upload(productId, file, name, description),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products", productId, "documents"] });
+    },
+  });
+}
+
+export function useDeleteProductDocument(productId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (documentId: string) => api.products.documents.delete(productId, documentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products", productId, "documents"] });
+    },
+  });
+}
+
+// ============================================================================
+// Client Documents
+// ============================================================================
+
+export interface DocumentFilters {
+  client_id?: string;
+  document_type?: string;
+  skip?: number;
+  limit?: number;
+}
+
+export function useDocuments(params?: DocumentFilters) {
+  return useQuery({
+    queryKey: ["documents", params],
+    queryFn: () => api.documents.list(params),
+    enabled: !!params?.client_id, // Require client_id filter for now
+  });
+}
+
+export function useDocument(documentId: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["documents", documentId],
+    queryFn: () => api.documents.get(documentId),
+    enabled: options?.enabled !== undefined ? options.enabled : !!documentId,
+  });
+}
+
+export function useUploadDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      clientId,
+      file,
+      documentType,
+      name,
+      description,
+    }: {
+      clientId: string;
+      file: File;
+      documentType: string;
+      name?: string;
+      description?: string;
+    }) => api.documents.upload(clientId, file, documentType, name, description),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["documents", { client_id: variables.clientId }] });
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+    },
+  });
+}
+
+export function useDeleteDocument() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (documentId: string) => api.documents.delete(documentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
   });
 }
