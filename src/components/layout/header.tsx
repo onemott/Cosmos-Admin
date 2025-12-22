@@ -15,6 +15,8 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { useCurrentUser } from "@/hooks/use-api";
 import { Badge } from "@/components/ui/badge";
+import { LanguageSelector } from "@/components/language-selector";
+import { useTranslation } from "@/lib/i18n";
 
 interface CurrentUserData {
   id: string;
@@ -30,6 +32,7 @@ export function Header() {
   const { user: authUser, logout } = useAuth();
   const { data: currentUserData, isLoading } = useCurrentUser();
   const currentUser = currentUserData as CurrentUserData | undefined;
+  const { t } = useTranslation();
 
   // Get initials for avatar from actual user data
   const getInitials = () => {
@@ -42,10 +45,10 @@ export function Header() {
   // Get display name
   const displayName = currentUser 
     ? `${currentUser.first_name} ${currentUser.last_name}`
-    : "Loading...";
+    : t("common.loading");
 
   // Get user email
-  const userEmail = currentUser?.email || "Loading...";
+  const userEmail = currentUser?.email || t("common.loading");
 
   // Check if platform admin
   const isPlatformAdmin = authUser?.roles.includes("super_admin") || 
@@ -59,7 +62,7 @@ export function Header() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search..."
+            placeholder={t("header.search")}
             className="pl-10"
           />
         </div>
@@ -67,6 +70,9 @@ export function Header() {
 
       {/* Right side */}
       <div className="flex items-center gap-4">
+        {/* Language Selector */}
+        <LanguageSelector />
+
         {/* Notifications */}
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
@@ -92,7 +98,7 @@ export function Header() {
                   <p className="text-sm font-medium leading-none">{displayName}</p>
                   {isPlatformAdmin && (
                     <Badge variant="secondary" className="text-xs">
-                      Platform Admin
+                      {t("sidebar.platformAdmin")}
                     </Badge>
                   )}
                 </div>
@@ -104,11 +110,11 @@ export function Header() {
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <UserCircle className="mr-2 h-4 w-4" />
-              Profile
+              {t("header.profile")}
             </DropdownMenuItem>
             <DropdownMenuItem>
               <Settings className="mr-2 h-4 w-4" />
-              Settings
+              {t("header.settings")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -116,7 +122,7 @@ export function Header() {
               onClick={logout}
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
+              {t("header.signOut")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -124,4 +130,3 @@ export function Header() {
     </header>
   );
 }
-

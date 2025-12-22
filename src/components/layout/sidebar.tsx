@@ -21,85 +21,12 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/auth-context";
 import { Badge } from "@/components/ui/badge";
-
-// Platform management (super admin)
-const platformNavigation = [
-  {
-    name: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    name: "Tenants",
-    href: "/tenants",
-    icon: Building2,
-    superAdminOnly: true,
-  },
-  {
-    name: "Users",
-    href: "/users",
-    icon: Users,
-  },
-];
-
-// CRM / Tenant-specific
-const tenantNavigation = [
-  {
-    name: "Clients",
-    href: "/clients",
-    icon: UserCircle,
-    description: "Your tenant's clients",
-  },
-  {
-    name: "Invitations",
-    href: "/invitations",
-    icon: Ticket,
-    description: "Client self-registration invites",
-  },
-  {
-    name: "Client Credentials",
-    href: "/client-users",
-    icon: KeyRound,
-    description: "Manage client login access",
-  },
-  {
-    name: "Tasks",
-    href: "/tasks",
-    icon: ClipboardList,
-    description: "Tasks and workflows",
-  },
-];
-
-// System
-const systemNavigation = [
-  {
-    name: "Modules",
-    href: "/modules",
-    icon: Blocks,
-  },
-  {
-    name: "Integrations",
-    href: "/integrations",
-    icon: Link2,
-  },
-  {
-    name: "Audit Logs",
-    href: "/audit",
-    icon: ScrollText,
-  },
-];
-
-const bottomNavigation = [
-  {
-    name: "Settings",
-    href: "/settings",
-    icon: Settings,
-  },
-];
+import { useTranslation } from "@/lib/i18n";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   
   // Platform-level users can see platform sections (Tenants, etc.)
   // - platform_admin/super_admin: full access
@@ -111,6 +38,77 @@ export function Sidebar() {
   // Platform admin = can manage (create/edit/delete)
   const isPlatformAdmin = (user?.roles.includes("super_admin") || 
                            user?.roles.includes("platform_admin")) ?? false;
+
+// Platform management (super admin)
+const platformNavigation = [
+  {
+      name: t("sidebar.dashboard"),
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+      name: t("sidebar.tenants"),
+    href: "/tenants",
+    icon: Building2,
+    superAdminOnly: true,
+  },
+  {
+      name: t("sidebar.users"),
+    href: "/users",
+    icon: Users,
+  },
+];
+
+// CRM / Tenant-specific
+const tenantNavigation = [
+  {
+      name: t("sidebar.clients"),
+    href: "/clients",
+    icon: UserCircle,
+  },
+  {
+      name: t("sidebar.invitations"),
+    href: "/invitations",
+    icon: Ticket,
+  },
+  {
+      name: t("sidebar.clientCredentials"),
+    href: "/client-users",
+    icon: KeyRound,
+  },
+  {
+      name: t("sidebar.tasks"),
+    href: "/tasks",
+    icon: ClipboardList,
+  },
+];
+
+// System
+const systemNavigation = [
+  {
+      name: t("sidebar.modules"),
+    href: "/modules",
+    icon: Blocks,
+  },
+  {
+      name: t("sidebar.integrations"),
+    href: "/integrations",
+    icon: Link2,
+  },
+  {
+      name: t("sidebar.auditLogs"),
+    href: "/audit",
+    icon: ScrollText,
+  },
+];
+
+const bottomNavigation = [
+  {
+      name: t("sidebar.settings"),
+    href: "/settings",
+    icon: Settings,
+  },
+];
 
   const NavLink = ({ item }: { item: { name: string; href: string; icon: React.ComponentType<{ className?: string }>; superAdminOnly?: boolean } }) => {
     // Hide platform-only items for non-platform users
@@ -152,7 +150,7 @@ export function Sidebar() {
         <div className="px-4 py-2">
           <Badge variant="secondary" className="w-full justify-center gap-1">
             <Shield className="h-3 w-3" />
-            {isPlatformAdmin ? "Platform Admin" : "Platform User"}
+            {isPlatformAdmin ? t("sidebar.platformAdmin") : t("sidebar.platformUser")}
           </Badge>
         </div>
       )}
@@ -160,30 +158,30 @@ export function Sidebar() {
       {/* Platform Navigation */}
       <nav className="space-y-1 px-3 py-2">
         <p className="px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          {isPlatformLevel ? "Platform" : "Overview"}
+          {isPlatformLevel ? t("sidebar.platform") : t("sidebar.overview")}
         </p>
         {platformNavigation.map((item) => (
-          <NavLink key={item.name} item={item} />
+          <NavLink key={item.href} item={item} />
         ))}
       </nav>
 
       {/* Tenant / CRM Navigation */}
       <nav className="space-y-1 px-3 py-2">
         <p className="px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          CRM
+          {t("sidebar.crm")}
         </p>
         {tenantNavigation.map((item) => (
-          <NavLink key={item.name} item={item} />
+          <NavLink key={item.href} item={item} />
         ))}
       </nav>
 
       {/* System Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-2">
         <p className="px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          System
+          {t("sidebar.system")}
         </p>
         {systemNavigation.map((item) => (
-          <NavLink key={item.name} item={item} />
+          <NavLink key={item.href} item={item} />
         ))}
       </nav>
 
@@ -192,17 +190,16 @@ export function Sidebar() {
       {/* Bottom Navigation */}
       <nav className="space-y-1 px-3 py-4">
         {bottomNavigation.map((item) => (
-          <NavLink key={item.name} item={item} />
+          <NavLink key={item.href} item={item} />
         ))}
         <button
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           onClick={logout}
         >
           <LogOut className="h-5 w-5" />
-          Sign Out
+          {t("sidebar.signOut")}
         </button>
       </nav>
     </div>
   );
 }
-

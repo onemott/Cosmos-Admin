@@ -37,8 +37,11 @@ import { useAuth } from "@/contexts/auth-context";
 import { useProducts, useMyTenantModules, useToggleProductVisibility, useDefaultProducts } from "@/hooks/use-api";
 import { Product, RiskLevel, TenantModuleStatus } from "@/types";
 import { ProductDialog, DeleteProductDialog, PlatformProductDialog } from "@/components/products";
+import { useTranslation, useLocalizedField } from "@/lib/i18n";
 
 export default function ProductsPage() {
+  const { t } = useTranslation();
+  const getLocalizedName = useLocalizedField();
   const { user } = useAuth();
 
   // Check permissions
@@ -153,9 +156,9 @@ export default function ProductsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Products</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t("products.title")}</h2>
           <p className="text-muted-foreground">
-            Manage investment products across all modules
+            {t("products.subtitle")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -168,7 +171,7 @@ export default function ProductsPage() {
           {isTenantAdmin && (
             <Button onClick={() => setCreateDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Add Product
+              {t("products.addProduct")}
             </Button>
           )}
         </div>
@@ -181,7 +184,7 @@ export default function ProductsPage() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search products..."
+                placeholder={t("common.search") + " " + t("products.title").toLowerCase() + "..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -192,10 +195,10 @@ export default function ProductsPage() {
                 <SelectValue placeholder="All Modules" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Modules</SelectItem>
+                <SelectItem value="all">{t("common.all")} {t("modules.title")}</SelectItem>
                 {enabledModules.map((module) => (
                   <SelectItem key={module.id} value={module.id}>
-                    {module.name}
+                    {getLocalizedName(module as any, "name")}
                   </SelectItem>
                 ))}
               </SelectContent>

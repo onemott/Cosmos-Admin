@@ -32,4 +32,6 @@ export {
   DropdownMenuRadioGroup,
 } from "./dropdown-menu";
 export { Alert, AlertTitle, AlertDescription } from "./alert";
+export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
+export { UserDataTooltip } from "./user-data-tooltip";
 

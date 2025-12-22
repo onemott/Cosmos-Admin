@@ -15,8 +15,11 @@ import { Plus, Loader2, MoreHorizontal, Pencil, Trash2, Tag } from "lucide-react
 import { useAuth } from "@/contexts/auth-context";
 import { useCategories } from "@/hooks/use-api";
 import { ProductCategory } from "@/types";
+import { useTranslation, useLocalizedField } from "@/lib/i18n";
 
 export default function CategoriesPage() {
+  const { t } = useTranslation();
+  const getLocalizedName = useLocalizedField();
   const { user } = useAuth();
 
   // Check permissions
@@ -54,15 +57,15 @@ export default function CategoriesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Product Categories</h2>
+          <h2 className="text-2xl font-bold tracking-tight">{t("categories.title")}</h2>
           <p className="text-muted-foreground">
-            Manage product categories for organizing investment products
+            {t("categories.subtitle")}
           </p>
         </div>
         {isTenantAdmin && (
           <Button onClick={() => setCreateDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Category
+            {t("categories.addCategory")}
           </Button>
         )}
       </div>

@@ -32,16 +32,20 @@ import { useAuth } from "@/contexts/auth-context";
 import { useAllModules, useMyTenantModules, useRequestModuleAccess } from "@/hooks/use-api";
 import { ModuleDialog, DeleteModuleDialog } from "@/components/modules";
 import { Module, TenantModuleStatus, ModuleCategory } from "@/types";
+import { useTranslation } from "@/lib/i18n";
+import { useLocalizedField } from "@/lib/i18n";
 
-// Category display info
-const categoryInfo: Record<ModuleCategory, { label: string; labelZh: string; icon: React.ComponentType<{ className?: string }> }> = {
-  basic: { label: "Basic Modules", labelZh: "基础模组", icon: Shield },
-  investment: { label: "Investment Products", labelZh: "投资产品模组", icon: TrendingUp },
-  analytics: { label: "Analytics", labelZh: "分析模组", icon: BarChart3 },
+// Category display info with translation keys
+const categoryConfig: Record<ModuleCategory, { labelKey: string; icon: React.ComponentType<{ className?: string }> }> = {
+  basic: { labelKey: "modules.basicModules", icon: Shield },
+  investment: { labelKey: "modules.investmentProducts", icon: TrendingUp },
+  analytics: { labelKey: "modules.analytics", icon: BarChart3 },
 };
 
 export default function ModulesPage() {
   const { user } = useAuth();
+  const { t } = useTranslation();
+  const getLocalizedName = useLocalizedField();
   
   // Determine user's access level
   const isPlatformLevel = user?.roles?.some((role: string) =>
@@ -106,28 +110,29 @@ export default function ModulesPage() {
   };
 
   // Render module card for platform catalogue view
-  const renderPlatformModuleCard = (module: Module) => (
+  const renderPlatformModuleCard = (module: Module) => {
+    const moduleName = getLocalizedName(module as unknown as Record<string, unknown>, "name");
+    const moduleDescription = getLocalizedName(module as unknown as Record<string, unknown>, "description");
+    
+    return (
     <Card key={module.id} className="relative hover:shadow-md transition-shadow">
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <CardTitle className="text-lg">{module.name}</CardTitle>
+                <CardTitle className="text-lg">{moduleName}</CardTitle>
               {module.is_core && (
                 <Badge variant="secondary" className="text-xs font-medium">
                   <Lock className="mr-1 h-3 w-3" />
-                  Core
+                    {t("modules.coreModule")}
                 </Badge>
               )}
               {!module.is_active && (
                 <Badge variant="outline" className="text-xs text-muted-foreground">
-                  Inactive
+                    {t("common.inactive")}
                 </Badge>
               )}
             </div>
-            {module.name_zh && (
-              <p className="text-sm text-muted-foreground font-medium">{module.name_zh}</p>
-            )}
           </div>
           {isPlatformAdmin && (
             <DropdownMenu>
@@ -139,7 +144,7 @@ export default function ModulesPage() {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleEdit(module)}>
                   <Pencil className="mr-2 h-4 w-4" />
-                  Edit
+                    {t("common.edit")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
@@ -147,7 +152,7 @@ export default function ModulesPage() {
                   className="text-destructive focus:text-destructive"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
+                    {t("common.delete")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -156,7 +161,7 @@ export default function ModulesPage() {
       </CardHeader>
       <CardContent className="pt-0 space-y-4">
         <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 min-h-[40px]">
-          {module.description || "No description available"}
+            {moduleDescription || t("common.description")}
         </p>
         <div className="flex items-center gap-2 pt-2 border-t">
           <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
@@ -168,11 +173,14 @@ export default function ModulesPage() {
       </CardContent>
     </Card>
   );
+  };
 
   // Render module card for tenant view
   const renderTenantModuleCard = (module: TenantModuleStatus) => {
     const isEnabled = module.is_enabled;
     const isCore = module.is_core;
+    const moduleName = getLocalizedName(module as unknown as Record<string, unknown>, "name");
+    const moduleDescription = getLocalizedName(module as unknown as Record<string, unknown>, "description");
     
     return (
       <Card 
@@ -187,25 +195,22 @@ export default function ModulesPage() {
           <div className="space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 space-y-2">
-                <CardTitle className="text-lg leading-tight">{module.name}</CardTitle>
-                {module.name_zh && (
-                  <p className="text-sm text-muted-foreground font-medium">{module.name_zh}</p>
-                )}
+                <CardTitle className="text-lg leading-tight">{moduleName}</CardTitle>
               </div>
               {isCore ? (
                 <Badge variant="default" className="shrink-0">
                   <Lock className="mr-1.5 h-3.5 w-3.5" />
-                  Always On
+                  {t("modules.coreModule")}
                 </Badge>
               ) : isEnabled ? (
                 <Badge variant="default" className="shrink-0 bg-green-600 hover:bg-green-700">
                   <Unlock className="mr-1.5 h-3.5 w-3.5" />
-                  Active
+                  {t("common.active")}
                 </Badge>
               ) : (
                 <Badge variant="outline" className="shrink-0 text-muted-foreground">
                   <Lock className="mr-1.5 h-3.5 w-3.5" />
-                  Locked
+                  {t("common.disabled")}
                 </Badge>
               )}
             </div>
@@ -224,7 +229,7 @@ export default function ModulesPage() {
                 ) : (
                   <Send className="mr-2 h-4 w-4" />
                 )}
-                Request Access from Platform Admin
+                {t("modules.requestAccess")}
               </Button>
             )}
           </div>
@@ -233,20 +238,15 @@ export default function ModulesPage() {
         <CardContent className="pt-0 space-y-3">
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 min-h-[40px]">
-              {module.description || "No description available"}
+              {moduleDescription || t("common.description")}
             </p>
-            {module.description_zh && (
-              <p className="text-sm text-muted-foreground/80 leading-relaxed line-clamp-2 italic">
-                {module.description_zh}
-              </p>
-            )}
           </div>
           
           {!isEnabled && (
             <div className="flex items-start gap-2 p-3 rounded-md bg-muted/50 border border-dashed">
               <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
               <p className="text-xs text-muted-foreground leading-relaxed">
-                This module is not available to your organization. Contact your platform administrator to request access.
+                {t("modules.subtitleTenant")}
               </p>
             </div>
           )}
@@ -259,18 +259,18 @@ export default function ModulesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Modules</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("modules.title")}</h1>
         <p className="text-muted-foreground">
             {isPlatformLevel
-              ? "Manage platform modules and feature configurations"
-              : "View your organization's available modules and features"
+              ? t("modules.subtitle")
+              : t("modules.subtitleTenant")
             }
           </p>
         </div>
         {isPlatformAdmin && (
           <Button onClick={() => setCreateDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Add Module
+            {t("modules.addModule")}
           </Button>
         )}
       </div>
@@ -279,7 +279,7 @@ export default function ModulesPage() {
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
             <p className="text-sm text-red-600">
-              Failed to load modules. Make sure the backend is running.
+              {t("modules.failedToLoad")}
             </p>
           </CardContent>
         </Card>
@@ -294,7 +294,7 @@ export default function ModulesPage() {
           <CardContent className="py-12 text-center">
             <Blocks className="mx-auto h-12 w-12 text-muted-foreground/50" />
             <p className="mt-4 text-sm text-muted-foreground">
-              No modules found. {isPlatformAdmin && "Click \"Add Module\" to create your first module."}
+              {t("modules.noModules")}
             </p>
           </CardContent>
         </Card>
@@ -304,15 +304,14 @@ export default function ModulesPage() {
             const categoryModules = groupedModules[category];
             if (!categoryModules || categoryModules.length === 0) return null;
             
-            const info = categoryInfo[category];
-            const Icon = info.icon;
+            const config = categoryConfig[category];
+            const Icon = config.icon;
             
             return (
               <div key={category} className="space-y-4">
                 <div className="flex items-center gap-2">
                   <Icon className="h-5 w-5 text-muted-foreground" />
-                  <h2 className="text-lg font-semibold">{info.label}</h2>
-                  <span className="text-sm text-muted-foreground">({info.labelZh})</span>
+                  <h2 className="text-lg font-semibold">{t(config.labelKey)}</h2>
                   <Badge variant="outline" className="ml-2">
                     {categoryModules.length}
                   </Badge>

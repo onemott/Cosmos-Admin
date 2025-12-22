@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Building2, Users, Wallet, UserCheck, Loader2, Shield } from "lucide-react";
 import { useDashboardStats, useSystemHealth } from "@/hooks/use-api";
 import { useAuth } from "@/contexts/auth-context";
+import { useTranslation } from "@/lib/i18n";
 
 // Types for the new stats format
 interface PlatformStats {
@@ -36,6 +37,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { data: stats, isLoading: statsLoading, error: statsError } = useDashboardStats();
   const { data: health, isLoading: healthLoading } = useSystemHealth();
+  const { t } = useTranslation();
 
   const isSuperAdmin = user?.roles.includes("super_admin") ?? false;
   
@@ -53,15 +55,15 @@ export default function DashboardPage() {
   // Platform-level cards (super admin only)
   const platformCards = isSuperAdmin && platformStats ? [
   {
-    title: "Total Tenants",
+      title: t("dashboard.totalTenants"),
       value: platformStats.total_tenants,
-      description: `${platformStats.active_tenants} active EAM firms`,
+      description: t("dashboard.activeTenants", { count: platformStats.active_tenants }),
     icon: Building2,
   },
   {
-      title: "Platform Users",
+      title: t("dashboard.platformUsers"),
       value: platformStats.total_users,
-      description: `${platformStats.active_users} active across platform`,
+      description: t("dashboard.activeAcrossPlatform", { count: platformStats.active_users }),
       icon: Users,
     },
   ] : [];
@@ -69,34 +71,34 @@ export default function DashboardPage() {
   // Tenant-level cards (CRM data - your company's clients)
   const tenantCards = [
     {
-      title: "My Team",
+      title: t("dashboard.myTeam"),
       value: tenantStats.total_users,
-      description: `${tenantStats.active_users} active users in your tenant`,
+      description: t("dashboard.activeUsersInTenant", { count: tenantStats.active_users }),
     icon: Users,
   },
   {
-      title: "My Clients",
+      title: t("dashboard.myClients"),
       value: tenantStats.total_clients,
-      description: "Clients in your organization",
+      description: t("dashboard.clientsInOrg"),
       icon: UserCheck,
     },
     {
-    title: "Total AUM",
+      title: t("dashboard.totalAUM"),
       value: tenantStats.formatted_aum,
-      description: "Your assets under management",
+      description: t("dashboard.assetsUnderManagement"),
     icon: Wallet,
   },
   ];
 
   const getHealthStatus = (status: string | undefined) => {
-    if (!status) return { color: "text-gray-400", label: "Unknown" };
+    if (!status) return { color: "text-gray-400", label: t("dashboard.unknown") };
     switch (status.toLowerCase()) {
       case "healthy":
-        return { color: "text-green-600", label: "● Healthy" };
+        return { color: "text-green-600", label: `● ${t("dashboard.healthy")}` };
       case "unhealthy":
-        return { color: "text-red-600", label: "● Unhealthy" };
+        return { color: "text-red-600", label: `● ${t("dashboard.unhealthy")}` };
       default:
-        return { color: "text-yellow-600", label: "● Unknown" };
+        return { color: "text-yellow-600", label: `● ${t("dashboard.unknown")}` };
     }
   };
 
@@ -122,9 +124,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("dashboard.title")}</h1>
         <p className="text-muted-foreground">
-          {isSuperAdmin ? "Platform administration and your CRM overview" : "Your organization's overview"}
+          {isSuperAdmin ? t("dashboard.subtitle") : t("dashboard.subtitleNonAdmin")}
         </p>
       </div>
 
@@ -132,7 +134,7 @@ export default function DashboardPage() {
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
             <p className="text-sm text-red-600">
-              Failed to load dashboard stats. Make sure the backend is running at http://localhost:8000
+              {t("dashboard.failedToLoad")}
             </p>
             </CardContent>
           </Card>
@@ -144,7 +146,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <Shield className="h-4 w-4 text-muted-foreground" />
             <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Platform Overview
+              {t("dashboard.platformOverview")}
             </h2>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -160,7 +162,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2">
           <UserCheck className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-            {isSuperAdmin ? "Your Organization (CRM)" : "Your Organization"}
+            {isSuperAdmin ? t("dashboard.yourOrganizationCRM") : t("dashboard.yourOrganization")}
           </h2>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
@@ -173,20 +175,20 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest events</CardDescription>
+            <CardTitle>{t("dashboard.recentActivity")}</CardTitle>
+            <CardDescription>{t("dashboard.latestEvents")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">No recent activity to display.</p>
+              <p className="text-sm text-muted-foreground">{t("dashboard.noRecentActivity")}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>System Status</CardTitle>
-            <CardDescription>Service health overview</CardDescription>
+            <CardTitle>{t("dashboard.systemStatus")}</CardTitle>
+            <CardDescription>{t("dashboard.serviceHealth")}</CardDescription>
           </CardHeader>
           <CardContent>
             {healthLoading ? (
@@ -194,19 +196,19 @@ export default function DashboardPage() {
             ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm">API Server</span>
+                  <span className="text-sm">{t("dashboard.apiServer")}</span>
                   <span className={`text-sm ${getHealthStatus(health?.api_server).color}`}>
                     {getHealthStatus(health?.api_server).label}
                   </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm">Database</span>
+                  <span className="text-sm">{t("dashboard.database")}</span>
                   <span className={`text-sm ${getHealthStatus(health?.database).color}`}>
                     {getHealthStatus(health?.database).label}
                   </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm">Background Jobs</span>
+                  <span className="text-sm">{t("dashboard.backgroundJobs")}</span>
                   <span className={`text-sm ${getHealthStatus(health?.background_jobs).color}`}>
                     {getHealthStatus(health?.background_jobs).label}
                   </span>
@@ -219,4 +221,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-

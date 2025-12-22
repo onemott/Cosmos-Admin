@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UserDataTooltip } from "@/components/ui/user-data-tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,7 @@ import { Search, Loader2, UserCheck, Plus, MoreHorizontal, Pencil, Trash2, Eye, 
 import { useClients, useClient } from "@/hooks/use-api";
 import { useAuth } from "@/contexts/auth-context";
 import { ClientDialog, DeleteClientDialog, ClientModulesDialog, ClientModuleBadges } from "@/components/clients";
+import { useTranslation } from "@/lib/i18n";
 
 interface ClientSummary {
   id: string;
@@ -46,6 +48,7 @@ interface ClientFull {
 export default function ClientsPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [kycFilter, setKycFilter] = useState<string>("all");
   const { data: clients, isLoading, error } = useClients({ 
@@ -114,6 +117,16 @@ export default function ClientsPage() {
     }
   };
 
+  const getKycStatusLabel = (status: string) => {
+    const key = `clients.kycStatus.${status.replace("-", "_")}` as const;
+    return t(key);
+  };
+
+  const getClientTypeLabel = (type: string) => {
+    const key = `clients.clientType.${type}` as const;
+    return t(key);
+  };
+
   const formatAum = (aum?: number) => {
     if (!aum) return "—";
     if (aum >= 1_000_000) return `$${(aum / 1_000_000).toFixed(1)}M`;
@@ -125,16 +138,16 @@ export default function ClientsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("clients.title")}</h1>
           <p className="text-muted-foreground">
-            View and manage your organization&apos;s client profiles
+            {t("clients.subtitle")}
           </p>
         </div>
         <div className="flex items-center gap-2">
         <div className="relative w-64">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search clients..."
+              placeholder={t("clients.searchClients")}
               className="pl-8"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -143,7 +156,7 @@ export default function ClientsPage() {
           {canManage && (
             <Button onClick={() => setCreateDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Add Client
+              {t("clients.addClient")}
             </Button>
           )}
         </div>
@@ -152,14 +165,14 @@ export default function ClientsPage() {
       {/* KYC Status Filter Tabs */}
       <Tabs value={kycFilter} onValueChange={setKycFilter} className="w-full">
         <TabsList>
-          <TabsTrigger value="all">All Clients</TabsTrigger>
+          <TabsTrigger value="all">{t("clients.allClients")}</TabsTrigger>
           <TabsTrigger value="pending" className="gap-2">
             <Clock className="h-3 w-3" />
-            Pending KYC
+            {t("clients.pendingKYC")}
           </TabsTrigger>
-          <TabsTrigger value="in_progress">In Progress</TabsTrigger>
-          <TabsTrigger value="approved">Approved</TabsTrigger>
-          <TabsTrigger value="rejected">Rejected</TabsTrigger>
+          <TabsTrigger value="in_progress">{t("clients.inProgress")}</TabsTrigger>
+          <TabsTrigger value="approved">{t("clients.approved")}</TabsTrigger>
+          <TabsTrigger value="rejected">{t("clients.rejected")}</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -167,7 +180,7 @@ export default function ClientsPage() {
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
             <p className="text-sm text-red-600">
-              Failed to load clients. Make sure the backend is running.
+              {t("clients.failedToLoad")}
             </p>
           </CardContent>
         </Card>
@@ -175,9 +188,9 @@ export default function ClientsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Your Clients</CardTitle>
+          <CardTitle>{t("clients.yourClients")}</CardTitle>
           <CardDescription>
-            {clientList.length} client{clientList.length !== 1 ? 's' : ''} in your organization
+            {t("clients.clientsInOrg", { count: clientList.length })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -189,9 +202,7 @@ export default function ClientsPage() {
             <div className="text-center py-8">
               <UserCheck className="mx-auto h-12 w-12 text-muted-foreground/50" />
               <p className="mt-4 text-sm text-muted-foreground">
-                {search
-                  ? "No clients match your search."
-                  : "No clients found. Add clients to start managing your CRM."}
+                {search ? t("clients.noSearchResults") : t("clients.noClients")}
               </p>
             </div>
           ) : (
@@ -203,46 +214,48 @@ export default function ClientsPage() {
                 >
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
+                      <UserDataTooltip>
                       <span className="font-medium">{client.display_name}</span>
+                      </UserDataTooltip>
                       <Badge variant="outline" className="capitalize">
-                        {client.client_type.replace("_", " ")}
+                        {getClientTypeLabel(client.client_type)}
                       </Badge>
                       <Badge variant={getKycBadgeVariant(client.kyc_status)}>
-                        KYC: {client.kyc_status.replace("_", " ")}
+                        {t("clients.kyc")}: {getKycStatusLabel(client.kyc_status)}
                       </Badge>
                     </div>
                     {/* Module badges */}
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-muted-foreground">Modules:</span>
+                      <span className="text-xs text-muted-foreground">{t("clients.modules")}:</span>
                       <ClientModuleBadges clientId={client.id} maxVisible={3} />
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <div className="font-medium">{formatAum(client.total_aum)}</div>
-                      <div className="text-xs text-muted-foreground">Total AUM</div>
+                      <div className="text-xs text-muted-foreground">{t("clients.totalAUM")}</div>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
                           <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Actions</span>
+                          <span className="sr-only">{t("common.actions")}</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => handleViewDetails(client.id)}>
                           <Eye className="mr-2 h-4 w-4" />
-                          View Details
+                          {t("common.viewDetails")}
                         </DropdownMenuItem>
                         {canManage && (
                           <>
                             <DropdownMenuItem onClick={() => handleEdit(client)}>
                               <Pencil className="mr-2 h-4 w-4" />
-                              Edit
+                              {t("common.edit")}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleManageModules(client)}>
                               <Blocks className="mr-2 h-4 w-4" />
-                              Manage Modules
+                              {t("clients.manageModules")}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -250,7 +263,7 @@ export default function ClientsPage() {
                               className="text-destructive focus:text-destructive"
                             >
                               <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
+                              {t("common.delete")}
                             </DropdownMenuItem>
                           </>
                         )}

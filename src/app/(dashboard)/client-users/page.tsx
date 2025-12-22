@@ -43,6 +43,8 @@ import {
   useClients,
 } from "@/hooks/use-api";
 import { useAuth } from "@/contexts/auth-context";
+import { useTranslation, useLocalizedDate } from "@/lib/i18n";
+import { UserDataTooltip } from "@/components/ui/user-data-tooltip";
 import type { ClientUser, ClientUserListResponse, Client } from "@/types";
 
 interface ClientListResponse {
@@ -51,6 +53,8 @@ interface ClientListResponse {
 }
 
 export default function ClientUsersPage() {
+  const { t } = useTranslation();
+  const { formatDate } = useLocalizedDate();
   const { user: currentUser } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const { data: clientUsersData, isLoading } = useClientUsers({ search: searchQuery || undefined });
@@ -184,15 +188,15 @@ export default function ClientUsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Client Credentials</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("clientUsers.title")}</h1>
           <p className="text-muted-foreground">
-            Manage login credentials for your clients to access the mobile app
+            {t("clientUsers.subtitle")}
           </p>
         </div>
         {isAdmin && (
           <Button onClick={() => setCreateDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Create Credentials
+            {t("clientUsers.addCredentials")}
           </Button>
         )}
       </div>
@@ -201,7 +205,7 @@ export default function ClientUsersPage() {
       <div className="relative w-full max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search by email..."
+          placeholder={t("clientUsers.searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-10"
@@ -213,7 +217,7 @@ export default function ClientUsersPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Credentials
+              {t("common.total")} {t("clientUsers.title")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -223,7 +227,7 @@ export default function ClientUsersPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Users
+              {t("common.active")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -235,7 +239,7 @@ export default function ClientUsersPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Clients Without Access
+              {t("clients.title")} Without Access
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -249,9 +253,9 @@ export default function ClientUsersPage() {
       {/* Client Users List */}
       <Card>
         <CardHeader>
-          <CardTitle>Client Login Accounts</CardTitle>
+          <CardTitle>{t("clientUsers.clientCredentials")}</CardTitle>
           <CardDescription>
-            {clientUsers.length} client{clientUsers.length !== 1 ? "s" : ""} with login credentials
+            {clientUsers.length} {t("common.client").toLowerCase()}{clientUsers.length !== 1 ? "s" : ""} with login credentials
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -263,7 +267,7 @@ export default function ClientUsersPage() {
             <div className="text-center py-8">
               <Users className="mx-auto h-12 w-12 text-muted-foreground/50" />
               <p className="mt-4 text-sm text-muted-foreground">
-                No client credentials found. Click &quot;Create Credentials&quot; to give a client access.
+                {t("clientUsers.noCredentials")}
               </p>
             </div>
           ) : (
@@ -279,18 +283,20 @@ export default function ClientUsersPage() {
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">
-                          {clientUser.client_name || "Unknown Client"}
-                        </span>
+                        <UserDataTooltip>
+                          <span className="font-medium">
+                            {clientUser.client_name || "Unknown Client"}
+                          </span>
+                        </UserDataTooltip>
                         <Badge variant="outline" className="text-xs capitalize">
                           {clientUser.client_type}
                         </Badge>
                         <Badge variant={clientUser.is_active ? "default" : "secondary"}>
-                          {clientUser.is_active ? "Active" : "Inactive"}
+                          {clientUser.is_active ? t("common.active") : t("common.inactive")}
                         </Badge>
                         {clientUser.mfa_enabled && (
                           <Badge variant="outline" className="text-green-600 border-green-600">
-                            MFA Enabled
+                            {t("clientUsers.mfaEnabled")}
                           </Badge>
                         )}
                       </div>
@@ -303,10 +309,10 @@ export default function ClientUsersPage() {
 
                   <div className="flex items-center gap-4">
                     <div className="text-sm text-muted-foreground text-right">
-                      <div>Last Login</div>
+                      <div>{t("clientUsers.lastLogin")}</div>
                       <div>
                         {clientUser.last_login_at
-                          ? new Date(clientUser.last_login_at).toLocaleDateString()
+                          ? formatDate(clientUser.last_login_at)
                           : "Never"}
                       </div>
                     </div>
@@ -315,7 +321,7 @@ export default function ClientUsersPage() {
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
                           <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Actions</span>
+                          <span className="sr-only">{t("common.actions")}</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -327,7 +333,7 @@ export default function ClientUsersPage() {
                           }}
                         >
                           <Mail className="mr-2 h-4 w-4" />
-                          Change Email
+                          {t("common.edit")} {t("common.email")}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
@@ -337,7 +343,7 @@ export default function ClientUsersPage() {
                           }}
                         >
                           <KeyRound className="mr-2 h-4 w-4" />
-                          Reset Password
+                          {t("clientUsers.resetPassword")}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -348,7 +354,7 @@ export default function ClientUsersPage() {
                           className={clientUser.is_active ? "text-orange-600" : "text-green-600"}
                         >
                           <Power className="mr-2 h-4 w-4" />
-                          {clientUser.is_active ? "Deactivate" : "Activate"}
+                          {clientUser.is_active ? t("tenants.deactivate") : t("common.active")}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
@@ -358,7 +364,7 @@ export default function ClientUsersPage() {
                           className="text-destructive focus:text-destructive"
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          Delete Credentials
+                          {t("clientUsers.deleteCredentials")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -380,9 +386,9 @@ export default function ClientUsersPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Client Credentials</DialogTitle>
+            <DialogTitle>{t("clientUsers.createDialog.title")}</DialogTitle>
             <DialogDescription>
-              Create login credentials for a client to access the mobile app.
+              {t("clientUsers.createDialog.description")}
             </DialogDescription>
           </DialogHeader>
 
@@ -390,10 +396,10 @@ export default function ClientUsersPage() {
             <div className="space-y-4">
               <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                 <p className="text-sm font-medium text-green-800 mb-2">
-                  Credentials created successfully!
+                  {t("clientUsers.tempPassword.title")}
                 </p>
                 <p className="text-sm text-green-700 mb-3">
-                  Share this temporary password with the client. They should change it on first login.
+                  {t("clientUsers.tempPassword.message")}
                 </p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 rounded bg-white px-3 py-2 text-sm font-mono border">
@@ -419,20 +425,20 @@ export default function ClientUsersPage() {
                     resetCreateForm();
                   }}
                 >
-                  Done
+                  {t("common.done")}
                 </Button>
               </DialogFooter>
             </div>
           ) : (
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Select Client</label>
+                <label className="text-sm font-medium">{t("clientUsers.createDialog.selectClient")}</label>
                 <select
                   className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   value={selectedClientId}
                   onChange={(e) => setSelectedClientId(e.target.value)}
                 >
-                  <option value="">Choose a client...</option>
+                  <option value="">{t("clientUsers.createDialog.selectClientPlaceholder")}</option>
                   {clientsWithoutCredentials.map((client) => (
                     <option key={client.id} value={client.id}>
                       {getClientName(client)} ({client.email || "No email"})
@@ -441,13 +447,13 @@ export default function ClientUsersPage() {
                 </select>
                 {clientsWithoutCredentials.length === 0 && (
                   <p className="text-sm text-muted-foreground">
-                    All clients already have login credentials.
+                    {t("clientUsers.createDialog.noClientsAvailable")}
                   </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Login Email</label>
+                <label className="text-sm font-medium">{t("clientUsers.createDialog.email")}</label>
                 <Input
                   type="email"
                   placeholder="client@example.com"
@@ -458,22 +464,22 @@ export default function ClientUsersPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">
-                  Password <span className="text-muted-foreground">(optional)</span>
+                  {t("clientUsers.createDialog.password")} <span className="text-muted-foreground">({t("common.optional")})</span>
                 </label>
                 <Input
                   type="password"
-                  placeholder="Leave empty to auto-generate"
+                  placeholder={t("clientUsers.createDialog.passwordHint")}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  If left empty, a secure temporary password will be generated.
+                  {t("clientUsers.createDialog.passwordHint")}
                 </p>
               </div>
 
               <DialogFooter>
                 <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   onClick={handleCreate}
@@ -482,7 +488,7 @@ export default function ClientUsersPage() {
                   {createMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Create Credentials
+                  {t("clientUsers.addCredentials")}
                 </Button>
               </DialogFooter>
             </div>
@@ -500,7 +506,7 @@ export default function ClientUsersPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Change Email</DialogTitle>
+            <DialogTitle>{t("common.edit")} {t("common.email")}</DialogTitle>
             <DialogDescription>
               Update the login email for {selectedUser?.client_name}.
             </DialogDescription>
@@ -508,7 +514,7 @@ export default function ClientUsersPage() {
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">New Email</label>
+              <label className="text-sm font-medium">{t("common.email")}</label>
               <Input
                 type="email"
                 value={email}
@@ -519,13 +525,13 @@ export default function ClientUsersPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button onClick={handleUpdate} disabled={updateMutation.isPending}>
               {updateMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Save Changes
+              {t("common.saveChanges")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -544,9 +550,9 @@ export default function ClientUsersPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Reset Password</DialogTitle>
+            <DialogTitle>{t("clientUsers.passwordDialog.title")}</DialogTitle>
             <DialogDescription>
-              Generate a new temporary password for {selectedUser?.client_name}.
+              {t("clientUsers.passwordDialog.description")}
             </DialogDescription>
           </DialogHeader>
 
@@ -554,10 +560,10 @@ export default function ClientUsersPage() {
             <div className="space-y-4">
               <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                 <p className="text-sm font-medium text-green-800 mb-2">
-                  Password reset successfully!
+                  {t("common.success")}!
                 </p>
                 <p className="text-sm text-green-700 mb-3">
-                  Share this new temporary password with the client.
+                  {t("clientUsers.passwordDialog.copyHint")}
                 </p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 rounded bg-white px-3 py-2 text-sm font-mono border">
@@ -577,7 +583,7 @@ export default function ClientUsersPage() {
                 </div>
               </div>
               <DialogFooter>
-                <Button onClick={() => setPasswordDialogOpen(false)}>Done</Button>
+                <Button onClick={() => setPasswordDialogOpen(false)}>{t("common.done")}</Button>
               </DialogFooter>
             </div>
           ) : (
@@ -588,7 +594,7 @@ export default function ClientUsersPage() {
               </p>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setPasswordDialogOpen(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   onClick={handleResetPassword}
@@ -597,7 +603,7 @@ export default function ClientUsersPage() {
                   {resetPasswordMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Generate New Password
+                  {t("clientUsers.passwordDialog.generateNew")}
                 </Button>
               </DialogFooter>
             </>
@@ -615,23 +621,22 @@ export default function ClientUsersPage() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Credentials</DialogTitle>
+            <DialogTitle>{t("clientUsers.deleteDialog.title")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete the login credentials for{" "}
+              {t("clientUsers.deleteDialog.description")}{" "}
               <strong>{selectedUser?.client_name}</strong>?
             </DialogDescription>
           </DialogHeader>
 
           <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
             <p className="text-sm text-orange-800">
-              This will remove the client&apos;s ability to log in to the mobile app. The client
-              record itself will not be deleted.
+              {t("clientUsers.deleteDialog.warning")}
             </p>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -641,7 +646,7 @@ export default function ClientUsersPage() {
               {deleteMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Delete Credentials
+              {t("clientUsers.deleteCredentials")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -658,7 +663,7 @@ export default function ClientUsersPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {selectedUser?.is_active ? "Deactivate Account" : "Activate Account"}
+              {selectedUser?.is_active ? t("tenants.deactivate") : t("common.active")}
             </DialogTitle>
             <DialogDescription>
               {selectedUser?.is_active
@@ -688,7 +693,7 @@ export default function ClientUsersPage() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setToggleActiveDialogOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               variant={selectedUser?.is_active ? "destructive" : "default"}
@@ -698,7 +703,7 @@ export default function ClientUsersPage() {
               {updateMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              {selectedUser?.is_active ? "Deactivate" : "Activate"}
+              {selectedUser?.is_active ? t("tenants.deactivate") : t("common.active")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -706,4 +711,3 @@ export default function ClientUsersPage() {
     </div>
   );
 }
-

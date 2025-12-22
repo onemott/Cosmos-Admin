@@ -32,6 +32,7 @@ import {
   DeleteUserDialog,
   ChangePasswordDialog,
 } from "@/components/users";
+import { useTranslation } from "@/lib/i18n";
 
 interface User {
   id: string;
@@ -56,6 +57,7 @@ export default function UsersPage() {
   const { user: currentUser } = useAuth();
   const { data: users, isLoading, error } = useUsers();
   const { data: tenants } = useTenants();
+  const { t } = useTranslation();
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -149,16 +151,16 @@ export default function UsersPage() {
               {user.first_name} {user.last_name}
             </span>
             {isCurrentUser(user.id) && (
-              <Badge variant="outline" className="text-xs">You</Badge>
+              <Badge variant="outline" className="text-xs">{t("common.you")}</Badge>
             )}
             {user.is_superuser && (
               <Badge variant="destructive" className="gap-1 flex-shrink-0">
                 <Shield className="h-3 w-3" />
-                Super Admin
+                {t("users.superAdmin")}
               </Badge>
             )}
             <Badge variant={user.is_active ? "default" : "secondary"} className="flex-shrink-0">
-              {user.is_active ? "Active" : "Inactive"}
+              {user.is_active ? t("common.active") : t("common.inactive")}
             </Badge>
           </div>
           <div className="text-sm text-muted-foreground">{user.email}</div>
@@ -167,7 +169,7 @@ export default function UsersPage() {
 
       <div className="flex items-center gap-4">
         <div className="text-sm text-muted-foreground text-right">
-          <div>Joined</div>
+          <div>{t("common.joined")}</div>
           <div>{new Date(user.created_at).toLocaleDateString()}</div>
         </div>
 
@@ -175,7 +177,7 @@ export default function UsersPage() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon">
               <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">Actions</span>
+              <span className="sr-only">{t("common.actions")}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -183,11 +185,11 @@ export default function UsersPage() {
               <>
                 <DropdownMenuItem onClick={() => handleEdit(user)}>
                   <Pencil className="mr-2 h-4 w-4" />
-                  Edit
+                  {t("common.edit")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleChangePassword(user)}>
                   <KeyRound className="mr-2 h-4 w-4" />
-                  {isCurrentUser(user.id) ? "Change Password" : "Reset Password"}
+                  {isCurrentUser(user.id) ? t("users.changePassword") : t("users.resetPassword")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
@@ -196,7 +198,7 @@ export default function UsersPage() {
               <>
                 <DropdownMenuItem onClick={() => handleChangePassword(user)}>
                   <KeyRound className="mr-2 h-4 w-4" />
-                  Change Password
+                  {t("users.changePassword")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
@@ -208,26 +210,26 @@ export default function UsersPage() {
                   className="text-orange-600 focus:text-orange-600"
                 >
                   <Power className="mr-2 h-4 w-4" />
-                  Deactivate
+                  {t("tenants.deactivate")}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => handleDeletePermanent(user)}
                   className="text-destructive focus:text-destructive"
                 >
                   <AlertTriangle className="mr-2 h-4 w-4" />
-                  Delete Permanently
+                  {t("tenants.deletePermanently")}
                 </DropdownMenuItem>
               </>
             )}
             {isCurrentUser(user.id) && (
               <DropdownMenuItem disabled className="text-muted-foreground">
                 <Power className="mr-2 h-4 w-4" />
-                Cannot delete yourself
+                {t("users.cannotDeleteSelf")}
               </DropdownMenuItem>
             )}
             {!isAdmin && !isCurrentUser(user.id) && (
               <DropdownMenuItem disabled className="text-muted-foreground text-xs">
-                Admin access required
+                {t("users.adminRequired")}
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -240,17 +242,17 @@ export default function UsersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("users.title")}</h1>
           <p className="text-muted-foreground">
             {isSuperAdmin
-              ? "Manage user accounts across all tenants"
-              : "View user accounts in your organization"}
+              ? t("users.subtitle")
+              : t("users.subtitleTenant")}
           </p>
         </div>
         {isAdmin && (
           <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Add User
+            {t("users.addUser")}
         </Button>
         )}
       </div>
@@ -261,7 +263,7 @@ export default function UsersPage() {
             <div className="flex items-center gap-2 text-sm text-blue-700">
               <Shield className="h-4 w-4" />
               <span>
-                As a super admin, you can view and manage users across all tenants.
+                {t("users.superAdminNote")}
               </span>
             </div>
           </CardContent>
@@ -272,7 +274,7 @@ export default function UsersPage() {
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
             <p className="text-sm text-red-600">
-              Failed to load users. Make sure the backend is running.
+              {t("users.failedToLoad")}
             </p>
           </CardContent>
         </Card>
@@ -280,10 +282,11 @@ export default function UsersPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{isPlatformAdmin ? "All Platform Users" : "Your Team"}</CardTitle>
+          <CardTitle>{isPlatformAdmin ? t("users.allPlatformUsers") : t("users.yourTeam")}</CardTitle>
           <CardDescription>
-            {userList.length} user{userList.length !== 1 ? "s" : ""}{" "}
-            {isPlatformAdmin ? "across the platform" : "in your organization"}
+            {isPlatformAdmin 
+              ? t("users.usersAcrossPlatform", { count: userList.length })
+              : t("users.usersInOrg", { count: userList.length })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -295,7 +298,7 @@ export default function UsersPage() {
             <div className="text-center py-8">
               <Users className="mx-auto h-12 w-12 text-muted-foreground/50" />
               <p className="mt-4 text-sm text-muted-foreground">
-                No users found. Click &quot;Add User&quot; to create your first team member.
+                {t("users.noUsers")}
               </p>
             </div>
           ) : isPlatformAdmin ? (

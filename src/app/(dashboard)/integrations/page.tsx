@@ -1,7 +1,10 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, RefreshCw } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 const bankConnectors = [
   {
@@ -28,18 +31,20 @@ const bankConnectors = [
 ];
 
 export default function IntegrationsPage() {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Bank Integrations</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("integrations.title")}</h1>
           <p className="text-muted-foreground">
-            Manage bank and custodian API connections
+            {t("integrations.subtitle")}
           </p>
         </div>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Add Integration
+          {t("integrations.addIntegration")}
         </Button>
       </div>
 
@@ -53,7 +58,7 @@ export default function IntegrationsPage() {
                   <Badge
                     variant={connector.status === "active" ? "default" : "secondary"}
                   >
-                    {connector.status}
+                    {connector.status === "active" ? t("common.active") : t("common.inactive")}
                   </Badge>
                 </CardTitle>
                 <CardDescription>
@@ -63,7 +68,7 @@ export default function IntegrationsPage() {
               </div>
               <Button variant="outline" size="sm">
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Sync Now
+                {t("common.refresh")}
               </Button>
             </CardHeader>
           </Card>
@@ -72,4 +77,3 @@ export default function IntegrationsPage() {
     </div>
   );
 }
-

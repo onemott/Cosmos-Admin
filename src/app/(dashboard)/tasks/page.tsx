@@ -47,6 +47,7 @@ import {
   User,
   AlertTriangle,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 import type {
   TaskSummary,
   TaskListResponse,
@@ -55,18 +56,6 @@ import type {
   WorkflowState,
   TaskPriority,
 } from "@/types";
-
-const TASK_TYPE_LABELS: Record<TaskType, string> = {
-  onboarding: "Onboarding",
-  kyc_review: "KYC Review",
-  document_review: "Document Review",
-  proposal_approval: "Proposal Approval",
-  product_request: "Product Request",
-  compliance_check: "Compliance Check",
-  risk_review: "Risk Review",
-  account_opening: "Account Opening",
-  general: "General",
-};
 
 const STATUS_VARIANTS: Record<TaskStatus, "default" | "secondary" | "destructive" | "outline"> = {
   pending: "outline",
@@ -83,15 +72,6 @@ const PRIORITY_COLORS: Record<TaskPriority, string> = {
   urgent: "bg-red-500",
 };
 
-const WORKFLOW_LABELS: Record<WorkflowState, string> = {
-  draft: "Draft",
-  pending_eam: "Needs Action",
-  pending_client: "Awaiting Client",
-  approved: "Approved",
-  declined: "Declined",
-  expired: "Expired",
-};
-
 const WORKFLOW_VARIANTS: Record<WorkflowState, "default" | "secondary" | "destructive" | "outline"> = {
   draft: "outline",
   pending_eam: "destructive",
@@ -102,6 +82,7 @@ const WORKFLOW_VARIANTS: Record<WorkflowState, "default" | "secondary" | "destru
 };
 
 export default function TasksPage() {
+  const { t } = useTranslation();
   const [filters, setFilters] = useState<{
     status?: string;
     task_type?: string;
@@ -124,6 +105,22 @@ export default function TasksPage() {
   const tasks = taskData?.tasks || [];
   const pendingCount = taskData?.pending_eam_count || 0;
 
+  const getTaskTypeLabel = (type: TaskType): string => {
+    return t(`tasks.taskType.${type}` as any);
+  };
+
+  const getWorkflowLabel = (state: WorkflowState): string => {
+    return t(`tasks.workflowState.${state}` as any);
+  };
+
+  const getPriorityLabel = (priority: TaskPriority): string => {
+    return t(`tasks.priority.${priority}` as any);
+  };
+
+  const getStatusLabel = (status: TaskStatus): string => {
+    return t(`tasks.status.${status}` as any);
+  };
+
   const handleQuickAction = async (taskId: string, action: string) => {
     try {
       await respondMutation.mutateAsync({ id: taskId, action });
@@ -137,15 +134,15 @@ export default function TasksPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Tasks</h1>
+          <h1 className="text-2xl font-bold">{t("tasks.title")}</h1>
           <p className="text-muted-foreground">
-            Manage client tasks and workflows
+            {t("tasks.subtitle")}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            {t("common.refresh")}
           </Button>
         </div>
       </div>
@@ -157,8 +154,7 @@ export default function TasksPage() {
             <div className="flex items-center gap-3">
               <AlertCircle className="h-5 w-5 text-orange-600" />
               <span className="font-medium text-orange-800">
-                {pendingCount} task{pendingCount !== 1 ? "s" : ""} require your
-                attention
+                {t("tasks.pendingEamCount", { count: pendingCount })}
               </span>
               <Button
                 variant="outline"
@@ -166,7 +162,7 @@ export default function TasksPage() {
                 className="ml-auto"
                 onClick={() => setActiveTab("action-needed")}
               >
-                View All
+                {t("common.viewDetails")}
               </Button>
             </div>
           </CardContent>
@@ -176,9 +172,9 @@ export default function TasksPage() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="all">All Tasks</TabsTrigger>
+          <TabsTrigger value="all">{t("tasks.allTasks")}</TabsTrigger>
           <TabsTrigger value="action-needed" className="relative">
-            Action Needed
+            {t("tasks.actionNeeded")}
             {pendingCount > 0 && (
               <span className="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">
                 {pendingCount}
@@ -202,12 +198,12 @@ export default function TasksPage() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-                <SelectItem value="on_hold">On Hold</SelectItem>
+                <SelectItem value="all">{t("common.all")} {t("common.status")}</SelectItem>
+                <SelectItem value="pending">{t("tasks.status.pending")}</SelectItem>
+                <SelectItem value="in_progress">{t("tasks.status.in_progress")}</SelectItem>
+                <SelectItem value="completed">{t("tasks.status.completed")}</SelectItem>
+                <SelectItem value="cancelled">{t("tasks.status.cancelled")}</SelectItem>
+                <SelectItem value="on_hold">{t("tasks.status.on_hold")}</SelectItem>
               </SelectContent>
             </Select>
 
@@ -224,10 +220,10 @@ export default function TasksPage() {
                 <SelectValue placeholder="Task Type" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                {Object.entries(TASK_TYPE_LABELS).map(([key, label]) => (
+                <SelectItem value="all">{t("common.all")} {t("common.type")}</SelectItem>
+                {(["onboarding", "kyc_review", "document_review", "proposal_approval", "product_request", "compliance_check", "risk_review", "account_opening", "general"] as TaskType[]).map((key) => (
                   <SelectItem key={key} value={key}>
-                    {label}
+                    {getTaskTypeLabel(key)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -246,10 +242,10 @@ export default function TasksPage() {
                 <SelectValue placeholder="Workflow State" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All States</SelectItem>
-                {Object.entries(WORKFLOW_LABELS).map(([key, label]) => (
+                <SelectItem value="all">{t("common.all")} {t("tasks.workflowState.label")}</SelectItem>
+                {(["draft", "pending_eam", "pending_client", "approved", "declined", "expired"] as WorkflowState[]).map((key) => (
                   <SelectItem key={key} value={key}>
-                    {label}
+                    {getWorkflowLabel(key)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -261,7 +257,7 @@ export default function TasksPage() {
               onClick={() => setFilters({})}
               className="text-muted-foreground"
             >
-              Clear Filters
+              {t("common.reset")} {t("common.filter")}
             </Button>
           </div>
         </CardContent>
@@ -271,7 +267,7 @@ export default function TasksPage() {
       <Card>
         <CardHeader>
           <CardTitle>
-            {activeTab === "action-needed" ? "Tasks Requiring Action" : "All Tasks"}
+            {activeTab === "action-needed" ? t("tasks.requiresEamAction") : t("tasks.allTasks")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -281,20 +277,20 @@ export default function TasksPage() {
             </div>
           ) : tasks.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No tasks found
+              {t("tasks.noTasks")}
             </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[50px]"></TableHead>
-                  <TableHead className="min-w-[200px]">Task</TableHead>
-                  <TableHead className="min-w-[150px]">Client</TableHead>
-                  <TableHead className="min-w-[140px]">Type</TableHead>
-                  <TableHead className="min-w-[120px]">Status</TableHead>
-                  <TableHead className="min-w-[140px]">Workflow</TableHead>
-                  <TableHead className="min-w-[120px]">Assigned To</TableHead>
-                  <TableHead className="min-w-[120px]">Due Date</TableHead>
+                  <TableHead className="min-w-[200px]">{t("tasks.title")}</TableHead>
+                  <TableHead className="min-w-[150px]">{t("tasks.client")}</TableHead>
+                  <TableHead className="min-w-[140px]">{t("common.type")}</TableHead>
+                  <TableHead className="min-w-[120px]">{t("common.status")}</TableHead>
+                  <TableHead className="min-w-[140px]">{t("tasks.workflowState.label")}</TableHead>
+                  <TableHead className="min-w-[120px]">{t("tasks.assignedTo")}</TableHead>
+                  <TableHead className="min-w-[120px]">{t("tasks.dueDate")}</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -343,14 +339,14 @@ export default function TasksPage() {
                     {/* Task Type */}
                     <TableCell>
                       <span className="text-sm whitespace-nowrap">
-                        {TASK_TYPE_LABELS[task.task_type] || task.task_type}
+                        {getTaskTypeLabel(task.task_type)}
                       </span>
                     </TableCell>
 
                     {/* Status */}
                     <TableCell>
                       <Badge variant={STATUS_VARIANTS[task.status]} className="whitespace-nowrap">
-                        {task.status.replace("_", " ")}
+                        {getStatusLabel(task.status)}
                       </Badge>
                     </TableCell>
 
@@ -358,7 +354,7 @@ export default function TasksPage() {
                     <TableCell>
                       {task.workflow_state ? (
                         <Badge variant={WORKFLOW_VARIANTS[task.workflow_state]} className="whitespace-nowrap">
-                          {WORKFLOW_LABELS[task.workflow_state]}
+                          {getWorkflowLabel(task.workflow_state)}
                         </Badge>
                       ) : (
                         <span className="text-sm text-muted-foreground">—</span>
@@ -395,7 +391,7 @@ export default function TasksPage() {
                           <DropdownMenuItem asChild>
                             <Link href={`/tasks/${task.id}`}>
                               <ExternalLink className="h-4 w-4 mr-2" />
-                              View Details
+                              {t("common.viewDetails")}
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
@@ -406,7 +402,7 @@ export default function TasksPage() {
                               }
                             >
                               <CheckCircle2 className="h-4 w-4 mr-2" />
-                              Acknowledge
+                              {t("tasks.acknowledge")}
                             </DropdownMenuItem>
                           )}
                           {task.status === "pending" && (
@@ -416,7 +412,7 @@ export default function TasksPage() {
                               }
                             >
                               <CheckCircle2 className="h-4 w-4 mr-2" />
-                              Mark Complete
+                              {t("tasks.markComplete")}
                             </DropdownMenuItem>
                           )}
                           {task.status !== "cancelled" && (
@@ -426,7 +422,7 @@ export default function TasksPage() {
                               }
                               className="text-red-600"
                             >
-                              Cancel Task
+                              {t("common.cancel")} {t("tasks.title")}
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>

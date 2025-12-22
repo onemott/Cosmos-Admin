@@ -40,19 +40,8 @@ import {
   FileText,
   MessageSquare,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 import type { Task, TaskStatus, TaskPriority, WorkflowState } from "@/types";
-
-const TASK_TYPE_LABELS: Record<string, string> = {
-  onboarding: "Onboarding",
-  kyc_review: "KYC Review",
-  document_review: "Document Review",
-  proposal_approval: "Proposal Approval",
-  product_request: "Product Request",
-  compliance_check: "Compliance Check",
-  risk_review: "Risk Review",
-  account_opening: "Account Opening",
-  general: "General",
-};
 
 const STATUS_VARIANTS: Record<TaskStatus, "default" | "secondary" | "destructive" | "outline"> = {
   pending: "outline",
@@ -62,27 +51,11 @@ const STATUS_VARIANTS: Record<TaskStatus, "default" | "secondary" | "destructive
   on_hold: "outline",
 };
 
-const PRIORITY_LABELS: Record<TaskPriority, string> = {
-  low: "Low",
-  medium: "Medium",
-  high: "High",
-  urgent: "Urgent",
-};
-
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
   low: "bg-slate-500",
   medium: "bg-blue-500",
   high: "bg-orange-500",
   urgent: "bg-red-500",
-};
-
-const WORKFLOW_LABELS: Record<WorkflowState, string> = {
-  draft: "Draft",
-  pending_eam: "Needs Action",
-  pending_client: "Awaiting Client",
-  approved: "Client Approved",
-  declined: "Client Declined",
-  expired: "Expired",
 };
 
 const WORKFLOW_VARIANTS: Record<WorkflowState, "default" | "secondary" | "destructive" | "outline"> = {
@@ -95,6 +68,7 @@ const WORKFLOW_VARIANTS: Record<WorkflowState, "default" | "secondary" | "destru
 };
 
 export default function TaskDetailPage() {
+  const { t } = useTranslation();
   const router = useRouter();
   const params = useParams();
   const taskId = params.taskId as string;
@@ -107,6 +81,22 @@ export default function TaskDetailPage() {
   const [showSendDialog, setShowSendDialog] = useState(false);
 
   const taskData = task as Task | undefined;
+
+  const getTaskTypeLabel = (type: string): string => {
+    return t(`tasks.taskType.${type}` as any);
+  };
+
+  const getWorkflowLabel = (state: WorkflowState): string => {
+    return t(`tasks.workflowState.${state}` as any);
+  };
+
+  const getPriorityLabel = (priority: TaskPriority): string => {
+    return t(`tasks.priority.${priority}` as any);
+  };
+
+  const getStatusLabel = (status: TaskStatus): string => {
+    return t(`tasks.status.${status}` as any);
+  };
 
   const handleAction = async (action: string, comment?: string) => {
     try {
@@ -165,7 +155,7 @@ export default function TaskDetailPage() {
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Link href="/tasks" className="hover:text-foreground">
-              Tasks
+              {t("tasks.title")}
             </Link>
             <span>/</span>
             <span>{taskId.slice(0, 8)}...</span>
@@ -175,7 +165,7 @@ export default function TaskDetailPage() {
             {taskData.requires_eam_action && (
               <Badge variant="destructive" className="gap-1">
                 <AlertTriangle className="h-3 w-3" />
-                Action Required
+                {t("tasks.requiresEamAction")}
               </Badge>
             )}
           </div>
@@ -183,7 +173,7 @@ export default function TaskDetailPage() {
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+            {t("common.refresh")}
           </Button>
         </div>
       </div>
@@ -194,12 +184,12 @@ export default function TaskDetailPage() {
           {/* Task Details */}
           <Card>
             <CardHeader>
-              <CardTitle>Task Details</CardTitle>
+              <CardTitle>{t("tasks.taskDetails")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {taskData.description && (
                 <div>
-                  <h4 className="text-sm font-medium mb-1">Description</h4>
+                  <h4 className="text-sm font-medium mb-1">{t("common.description")}</h4>
                   <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                     {taskData.description}
                   </p>
@@ -208,24 +198,24 @@ export default function TaskDetailPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h4 className="text-sm font-medium mb-1">Task Type</h4>
+                  <h4 className="text-sm font-medium mb-1">{t("common.type")}</h4>
                   <p className="text-sm">
-                    {TASK_TYPE_LABELS[taskData.task_type] || taskData.task_type}
+                    {getTaskTypeLabel(taskData.task_type)}
                   </p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium mb-1">Priority</h4>
+                  <h4 className="text-sm font-medium mb-1">{t("tasks.priority.label")}</h4>
                   <div className="flex items-center gap-2">
                     <div
                       className={`w-2 h-2 rounded-full ${PRIORITY_COLORS[taskData.priority]}`}
                     />
                     <span className="text-sm">
-                      {PRIORITY_LABELS[taskData.priority]}
+                      {getPriorityLabel(taskData.priority)}
                     </span>
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium mb-1">Status</h4>
+                  <h4 className="text-sm font-medium mb-1">{t("tasks.status.label")}</h4>
                   <Select
                     value={taskData.status}
                     onValueChange={(v) => handleStatusChange(v as TaskStatus)}
@@ -234,16 +224,16 @@ export default function TaskDetailPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="on_hold">On Hold</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      <SelectItem value="pending">{t("tasks.status.pending")}</SelectItem>
+                      <SelectItem value="in_progress">{t("tasks.status.in_progress")}</SelectItem>
+                      <SelectItem value="completed">{t("tasks.status.completed")}</SelectItem>
+                      <SelectItem value="on_hold">{t("tasks.status.on_hold")}</SelectItem>
+                      <SelectItem value="cancelled">{t("tasks.status.cancelled")}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium mb-1">Created</h4>
+                  <h4 className="text-sm font-medium mb-1">{t("common.created")}</h4>
                   <p className="text-sm">
                     {format(new Date(taskData.created_at), "MMM d, yyyy HH:mm")}
                   </p>
@@ -324,7 +314,7 @@ export default function TaskDetailPage() {
           {/* Actions Card */}
           <Card>
             <CardHeader>
-              <CardTitle>Actions</CardTitle>
+              <CardTitle>{t("common.actions")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {/* Show different actions based on workflow state */}
@@ -425,9 +415,9 @@ export default function TaskDetailPage() {
               {/* Workflow State */}
               {taskData.workflow_state && (
                 <div>
-                  <h4 className="text-sm font-medium mb-1">Workflow State</h4>
+                  <h4 className="text-sm font-medium mb-1">{t("tasks.workflowState.label")}</h4>
                   <Badge variant={WORKFLOW_VARIANTS[taskData.workflow_state]}>
-                    {WORKFLOW_LABELS[taskData.workflow_state]}
+                    {getWorkflowLabel(taskData.workflow_state)}
                   </Badge>
                 </div>
               )}
@@ -435,7 +425,7 @@ export default function TaskDetailPage() {
               {/* Client */}
               {taskData.client && (
                 <div>
-                  <h4 className="text-sm font-medium mb-1">Client</h4>
+                  <h4 className="text-sm font-medium mb-1">{t("tasks.client")}</h4>
                   <Link
                     href={`/clients/${taskData.client_id}`}
                     className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
@@ -449,7 +439,7 @@ export default function TaskDetailPage() {
 
               {/* Assigned To */}
               <div>
-                <h4 className="text-sm font-medium mb-1">Assigned To</h4>
+                <h4 className="text-sm font-medium mb-1">{t("tasks.assignedTo")}</h4>
                 <p className="text-sm">
                   {taskData.assigned_to?.display_name ||
                     taskData.assigned_to?.email ||
@@ -470,7 +460,7 @@ export default function TaskDetailPage() {
               {/* Due Date */}
               {taskData.due_date && (
                 <div>
-                  <h4 className="text-sm font-medium mb-1">Due Date</h4>
+                  <h4 className="text-sm font-medium mb-1">{t("tasks.dueDate")}</h4>
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     {format(new Date(taskData.due_date), "MMM d, yyyy")}

@@ -15,6 +15,7 @@ import { Plus, Loader2, Building2, MoreHorizontal, Pencil, Trash2, Settings, Pow
 import { useTenants } from "@/hooks/use-api";
 import { useAuth } from "@/contexts/auth-context";
 import { TenantDialog, DeleteTenantDialog, TenantModulesDialog, TenantModuleBadges } from "@/components/tenants";
+import { useTranslation } from "@/lib/i18n";
 
 interface Tenant {
   id: string;
@@ -30,6 +31,7 @@ interface Tenant {
 export default function TenantsPage() {
   const { data: tenants, isLoading, error } = useTenants();
   const { user } = useAuth();
+  const { t } = useTranslation();
   
   // Platform admin can manage (create/edit/delete), platform user is read-only
   const canManage = (user?.roles.includes("super_admin") || 
@@ -76,17 +78,17 @@ export default function TenantsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tenants</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("tenants.title")}</h1>
           <p className="text-muted-foreground">
             {canManage 
-              ? "Manage EAM firms and their configurations"
-              : "View EAM firms registered on the platform"}
+              ? t("tenants.subtitle")
+              : t("tenants.subtitleReadOnly")}
           </p>
         </div>
         {canManage && (
           <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Tenant
+            {t("tenants.addTenant")}
         </Button>
         )}
       </div>
@@ -95,7 +97,7 @@ export default function TenantsPage() {
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
             <p className="text-sm text-red-600">
-              Failed to load tenants. Make sure the backend is running.
+              {t("tenants.failedToLoad")}
             </p>
           </CardContent>
         </Card>
@@ -103,9 +105,11 @@ export default function TenantsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Tenants</CardTitle>
+          <CardTitle>{t("tenants.allTenants")}</CardTitle>
           <CardDescription>
-            {tenantList.length} registered EAM firm{tenantList.length !== 1 ? "s" : ""}
+            {tenantList.length === 1 
+              ? t("tenants.registeredFirms", { count: tenantList.length })
+              : t("tenants.registeredFirmsPlural", { count: tenantList.length })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -117,7 +121,7 @@ export default function TenantsPage() {
             <div className="text-center py-8">
               <Building2 className="mx-auto h-12 w-12 text-muted-foreground/50" />
               <p className="mt-4 text-sm text-muted-foreground">
-                No tenants registered yet. Click &quot;Add Tenant&quot; to create your first EAM firm.
+                {t("tenants.noTenants")}
               </p>
             </div>
           ) : (
@@ -135,7 +139,7 @@ export default function TenantsPage() {
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{tenant.name}</span>
                         <Badge variant={tenant.is_active ? "default" : "secondary"}>
-                          {tenant.is_active ? "Active" : "Inactive"}
+                          {tenant.is_active ? t("common.active") : t("common.inactive")}
                         </Badge>
                       </div>
           <div className="text-sm text-muted-foreground">
@@ -148,7 +152,7 @@ export default function TenantsPage() {
                       </div>
                       {/* Module badges */}
                       <div className="flex items-center gap-1.5">
-                        <span className="text-xs text-muted-foreground">Modules:</span>
+                        <span className="text-xs text-muted-foreground">{t("tenants.modules")}:</span>
                         <TenantModuleBadges tenantId={tenant.id} maxVisible={3} />
                       </div>
                     </div>
@@ -156,7 +160,7 @@ export default function TenantsPage() {
                   
                   <div className="flex items-center gap-4">
                     <div className="text-sm text-muted-foreground text-right">
-                      <div>Created</div>
+                      <div>{t("common.created")}</div>
                       <div>{new Date(tenant.created_at).toLocaleDateString()}</div>
                     </div>
                     
@@ -164,7 +168,7 @@ export default function TenantsPage() {
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
                           <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Actions</span>
+                          <span className="sr-only">{t("common.actions")}</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -172,15 +176,15 @@ export default function TenantsPage() {
                           <>
                             <DropdownMenuItem onClick={() => handleEdit(tenant)}>
                               <Pencil className="mr-2 h-4 w-4" />
-                              Edit
+                              {t("common.edit")}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleManageModules(tenant)}>
                               <Blocks className="mr-2 h-4 w-4" />
-                              Manage Modules
+                              {t("tenants.manageModules")}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleSettings(tenant)}>
                               <Settings className="mr-2 h-4 w-4" />
-                              Settings
+                              {t("header.settings")}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -188,20 +192,20 @@ export default function TenantsPage() {
                               className="text-orange-600 focus:text-orange-600"
                             >
                               <Power className="mr-2 h-4 w-4" />
-                              Deactivate
+                              {t("tenants.deactivate")}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => handleDeletePermanent(tenant)}
                               className="text-destructive focus:text-destructive"
                             >
                               <AlertTriangle className="mr-2 h-4 w-4" />
-                              Delete Permanently
+                              {t("tenants.deletePermanently")}
                             </DropdownMenuItem>
                           </>
                         ) : (
                           <DropdownMenuItem disabled className="text-muted-foreground">
                             <Eye className="mr-2 h-4 w-4" />
-                            View Only
+                            {t("tenants.viewOnly")}
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>
