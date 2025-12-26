@@ -2,7 +2,7 @@
 
 from datetime import datetime, date
 from typing import Optional, List, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ClientTaskSummary(BaseModel):
@@ -86,7 +86,16 @@ class ProductRequestItem(BaseModel):
     product_name: str = Field(..., description="Product name")
     module_code: str = Field(..., description="Module code the product belongs to")
     min_investment: float = Field(..., description="Minimum investment amount")
+    requested_amount: float = Field(..., description="Amount client wants to invest (>= min_investment)")
     currency: str = Field(default="USD", description="Currency")
+    
+    @model_validator(mode='after')
+    def validate_requested_amount(self) -> 'ProductRequestItem':
+        if self.requested_amount < self.min_investment:
+            raise ValueError(
+                f'requested_amount ({self.requested_amount}) must be >= min_investment ({self.min_investment})'
+            )
+        return self
 
 
 class ProductRequestCreate(BaseModel):

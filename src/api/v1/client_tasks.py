@@ -358,8 +358,19 @@ async def create_product_request(
     if len(product_names) > 3:
         product_list += f" and {len(product_names) - 3} more"
     
-    # Calculate total minimum investment
+    # Calculate total minimum investment and total requested amount
     total_min = sum(p.min_investment for p in request.products)
+    total_requested = sum(p.requested_amount for p in request.products)
+    
+    # Build orders array for structured display
+    orders = [{
+        "product_id": p.product_id,
+        "product_name": p.product_name,
+        "module_code": p.module_code,
+        "min_investment": p.min_investment,
+        "requested_amount": p.requested_amount,
+        "currency": p.currency,
+    } for p in request.products]
     
     # Create task
     task = Task(
@@ -367,16 +378,18 @@ async def create_product_request(
         client_id=client_id,
         title=f"Product Interest: {product_list}",
         description=f"Client has expressed interest in {len(request.products)} investment product(s). "
-                    f"Total minimum investment: ${total_min:,.2f}. "
+                    f"Total requested investment: ${total_requested:,.2f} (minimum: ${total_min:,.2f}). "
                     f"Please review and prepare a proposal if appropriate.",
         task_type=TaskType.PRODUCT_REQUEST,
         status=TaskStatus.PENDING,
         priority=TaskPriority.MEDIUM,
         workflow_state=WorkflowState.PENDING_EAM,
         proposal_data={
-            "products": [p.model_dump() for p in request.products],
+            "orders": orders,
+            "products": [p.model_dump() for p in request.products],  # Keep for backward compatibility
             "client_notes": request.client_notes,
             "total_min_investment": total_min,
+            "total_requested_amount": total_requested,
             "submitted_at": datetime.now(timezone.utc).isoformat(),
         },
     )
