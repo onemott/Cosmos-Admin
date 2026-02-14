@@ -124,7 +124,10 @@ export function PlatformProductDialog({
   useEffect(() => {
     const subscription = form.watch((value) => {
       setIsUnlockedForAll(value.is_unlocked_for_all ?? false);
-      setSelectedTenantIds(value.tenant_ids ?? []);
+      // Ensure all items are strings and filter out undefined/null
+      const safeTenantIds = (value.tenant_ids ?? [])
+        .filter((id): id is string => typeof id === 'string');
+      setSelectedTenantIds(safeTenantIds);
     });
     return () => subscription.unsubscribe();
   }, [form]);

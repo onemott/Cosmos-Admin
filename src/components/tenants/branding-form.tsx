@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -234,11 +235,15 @@ export function BrandingForm({ tenantId, tenantName }: BrandingFormProps) {
               style={{ backgroundColor: logoPreview ? "transparent" : currentColor + "20" }}
             >
               {logoPreview ? (
-                <img
-                  src={logoPreview}
-                  alt="Logo preview"
-                  className="h-full w-full object-contain p-2"
-                />
+                <div className="relative h-full w-full p-2">
+                  <Image
+                    src={logoPreview}
+                    alt="Logo preview"
+                    fill
+                    className="object-contain"
+                    unoptimized // Since we're dealing with dynamic blobs or external URLs
+                  />
+                </div>
               ) : (
                 <div
                   className="flex h-20 w-20 items-center justify-center rounded-lg text-3xl font-bold text-white"
@@ -394,11 +399,19 @@ export function BrandingForm({ tenantId, tenantName }: BrandingFormProps) {
                 <Label className="text-sm font-medium">{t("branding.preview")}</Label>
                 <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
                   <div
-                    className="h-12 w-12 rounded-lg flex items-center justify-center text-white font-bold"
+                    className="h-12 w-12 rounded-lg flex items-center justify-center text-white font-bold relative overflow-hidden"
                     style={{ backgroundColor: currentColor }}
                   >
                     {logoPreview ? (
-                      <img src={logoPreview} alt="Logo" className="h-10 w-10 object-contain" />
+                      <div className="relative h-10 w-10">
+                        <Image 
+                          src={logoPreview} 
+                          alt="Logo" 
+                          fill
+                          className="object-contain"
+                          unoptimized
+                        />
+                      </div>
                     ) : (
                       (form.watch("app_name") || tenantName).charAt(0).toUpperCase()
                     )}

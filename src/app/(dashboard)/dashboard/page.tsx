@@ -33,7 +33,23 @@ interface CombinedStats {
   formatted_aum?: string;
 }
 
+import { Button } from "@/components/ui/button";
+import { apiClient } from "@/lib/api";
+import { useState } from "react";
+
 export default function DashboardPage() {
+  const [helloMessage, setHelloMessage] = useState("");
+
+  const handleHello = async () => {
+    try {
+      const res = await apiClient.get<{ message: string }>("/hello");
+      setHelloMessage(res.message);
+    } catch (error) {
+      console.error(error);
+      setHelloMessage("Error fetching hello");
+    }
+  };
+
   const { user } = useAuth();
   const { data: stats, isLoading: statsLoading, error: statsError } = useDashboardStats();
   const { data: health, isLoading: healthLoading } = useSystemHealth();
@@ -123,11 +139,19 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t("dashboard.title")}</h1>
-        <p className="text-muted-foreground">
-          {isSuperAdmin ? t("dashboard.subtitle") : t("dashboard.subtitleNonAdmin")}
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{t("dashboard.title")}</h1>
+          <p className="text-muted-foreground">
+            {isSuperAdmin ? t("dashboard.subtitle") : t("dashboard.subtitleNonAdmin")}
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          {helloMessage && <span className="text-green-600 font-medium">{helloMessage}</span>}
+          <Button onClick={handleHello} variant="outline">
+            Test Hello API
+          </Button>
+        </div>
       </div>
 
       {statsError && (
