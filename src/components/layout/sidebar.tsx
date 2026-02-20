@@ -18,9 +18,16 @@ import {
   KeyRound,
   Ticket,
   Palette,
+  UsersRound,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { useAuth } from "@/contexts/auth-context";
+import {
+  useAuth,
+  useIsPlatformLevel,
+  useIsPlatformAdmin,
+  useIsSupervisor,
+  useRoleDisplayName,
+} from "@/contexts/auth-context";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/lib/i18n";
 
@@ -29,16 +36,11 @@ export function Sidebar() {
   const { user, logout } = useAuth();
   const { t } = useTranslation();
   
-  // Platform-level users can see platform sections (Tenants, etc.)
-  // - platform_admin/super_admin: full access
-  // - platform_user: read-only access
-  const isPlatformLevel = (user?.roles.includes("super_admin") || 
-                           user?.roles.includes("platform_admin") ||
-                           user?.roles.includes("platform_user")) ?? false;
-  
-  // Platform admin = can manage (create/edit/delete)
-  const isPlatformAdmin = (user?.roles.includes("super_admin") || 
-                           user?.roles.includes("platform_admin")) ?? false;
+  // Use centralized role hooks
+  const isPlatformLevel = useIsPlatformLevel();
+  const isPlatformAdmin = useIsPlatformAdmin();
+  const isSupervisor = useIsSupervisor();
+  const roleDisplayName = useRoleDisplayName();
 
 // Platform management (super admin)
 const platformNavigation = [
@@ -66,6 +68,12 @@ const tenantNavigation = [
       name: t("sidebar.clients"),
     href: "/clients",
     icon: UserCircle,
+  },
+  {
+      name: t("sidebar.team") || "Team",
+    href: "/team",
+    icon: UsersRound,
+    supervisorOnly: true,
   },
   {
       name: t("sidebar.invitations"),
@@ -116,9 +124,14 @@ const bottomNavigation = [
   },
 ];
 
-  const NavLink = ({ item }: { item: { name: string; href: string; icon: React.ComponentType<{ className?: string }>; superAdminOnly?: boolean } }) => {
+  const NavLink = ({ item }: { item: { name: string; href: string; icon: React.ComponentType<{ className?: string }>; superAdminOnly?: boolean; supervisorOnly?: boolean } }) => {
     // Hide platform-only items for non-platform users
     if (item.superAdminOnly && !isPlatformLevel) {
+      return null;
+    }
+    
+    // Hide supervisor-only items for non-supervisors
+    if (item.supervisorOnly && !isSupervisor) {
       return null;
     }
     
@@ -151,12 +164,12 @@ const bottomNavigation = [
 
       <Separator />
 
-      {/* Platform Level Badge */}
-      {isPlatformLevel && (
+      {/* Role Badge */}
+      {user && (
         <div className="px-4 py-2">
           <Badge variant="secondary" className="w-full justify-center gap-1">
             <Shield className="h-3 w-3" />
-            {isPlatformAdmin ? t("sidebar.platformAdmin") : t("sidebar.platformUser")}
+            {roleDisplayName}
           </Badge>
         </div>
       )}

@@ -149,6 +149,50 @@ export function useChangePassword(id: string) {
   });
 }
 
+// User Hierarchy
+export function useUserWithHierarchy(id: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["users", id, "hierarchy"],
+    queryFn: () => api.users.getWithHierarchy(id),
+    enabled: options?.enabled !== undefined ? options.enabled : !!id,
+  });
+}
+
+export function useUserSubordinates(id: string, params?: { direct_only?: boolean }, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["users", id, "subordinates", params],
+    queryFn: () => api.users.getSubordinates(id, params),
+    enabled: options?.enabled !== undefined ? options.enabled : !!id,
+  });
+}
+
+export function useUserTeamTree(id: string, params?: { max_depth?: number }, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["users", id, "team-tree", params],
+    queryFn: () => api.users.getTeamTree(id, params),
+    enabled: options?.enabled !== undefined ? options.enabled : !!id,
+  });
+}
+
+export function useAssignSupervisor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, supervisorId }: { userId: string; supervisorId: string | null }) =>
+      api.users.assignSupervisor(userId, supervisorId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+}
+
+export function useTenantOrgTree(tenantId: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["users", "org-tree", tenantId],
+    queryFn: () => api.users.getTenantOrgTree(tenantId),
+    enabled: options?.enabled !== undefined ? options.enabled : !!tenantId,
+  });
+}
+
 // Roles
 export function useRoles() {
   return useQuery({
@@ -163,6 +207,7 @@ export function useClients(params?: {
   limit?: number;
   search?: string;
   kyc_status?: string;
+  assigned_to?: string;
 }) {
   return useQuery({
     queryKey: ["clients", params],
@@ -204,6 +249,32 @@ export function useDeleteClient() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.clients.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+}
+
+export function useMyAssignedClients() {
+  return useQuery({
+    queryKey: ["clients", "my-assigned"],
+    queryFn: () => api.clients.myAssigned(),
+  });
+}
+
+export function useTeamAssignedClients() {
+  return useQuery({
+    queryKey: ["clients", "team-assigned"],
+    queryFn: () => api.clients.teamAssigned(),
+  });
+}
+
+export function useReassignClient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ clientId, userId }: { clientId: string; userId: string | null }) =>
+      api.clients.reassign(clientId, userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       queryClient.invalidateQueries({ queryKey: ["stats"] });

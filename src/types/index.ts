@@ -51,6 +51,33 @@ export interface User {
   created_at: string;
   updated_at: string;
   roles?: string[];
+  // Hierarchy fields
+  supervisor_id?: string;
+  supervisor_name?: string;
+  department?: string;
+  employee_code?: string;
+  subordinate_count?: number;
+}
+
+export interface UserWithHierarchy extends User {
+  supervisor?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+  };
+  subordinates?: User[];
+}
+
+export interface TeamTreeNode {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  department?: string;
+  employee_code?: string;
+  subordinate_count: number;
+  children: TeamTreeNode[];
 }
 
 export interface Client {

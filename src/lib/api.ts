@@ -239,6 +239,24 @@ export const api = {
     changePassword: (id: string, data: { current_password?: string; new_password: string }) =>
       apiClient.post(`/users/${id}/change-password`, data),
     me: () => apiClient.get("/users/me"),
+    // Hierarchy management
+    getWithHierarchy: (id: string) => apiClient.get(`/users/${id}/with-hierarchy`),
+    getSubordinates: (id: string, params?: { direct_only?: boolean }) => {
+      const searchParams = new URLSearchParams();
+      if (params?.direct_only !== undefined) searchParams.set("direct_only", String(params.direct_only));
+      const query = searchParams.toString();
+      return apiClient.get(`/users/${id}/subordinates${query ? `?${query}` : ""}`);
+    },
+    getTeamTree: (id: string, params?: { max_depth?: number }) => {
+      const searchParams = new URLSearchParams();
+      if (params?.max_depth !== undefined) searchParams.set("max_depth", String(params.max_depth));
+      const query = searchParams.toString();
+      return apiClient.get(`/users/${id}/team-tree${query ? `?${query}` : ""}`);
+    },
+    assignSupervisor: (userId: string, supervisorId: string | null) =>
+      apiClient.post(`/users/${userId}/assign-supervisor`, { supervisor_id: supervisorId }),
+    getTenantOrgTree: (tenantId: string) =>
+      apiClient.get(`/users/tenant/${tenantId}/org-tree`),
   },
 
   // Roles
@@ -248,12 +266,13 @@ export const api = {
 
   // Clients
   clients: {
-    list: (params?: { skip?: number; limit?: number; search?: string; kyc_status?: string }) => {
+    list: (params?: { skip?: number; limit?: number; search?: string; kyc_status?: string; assigned_to?: string }) => {
       const searchParams = new URLSearchParams({
         skip: String(params?.skip || 0),
         limit: String(params?.limit || 20),
         ...(params?.search && { search: params.search }),
         ...(params?.kyc_status && { kyc_status: params.kyc_status }),
+        ...(params?.assigned_to && { assigned_to: params.assigned_to }),
       });
       return apiClient.get(`/clients?${searchParams}`);
     },
@@ -269,6 +288,11 @@ export const api = {
       apiClient.post(`/clients/${clientId}/modules/${moduleId}/enable`),
     disableModule: (clientId: string, moduleId: string) =>
       apiClient.post(`/clients/${clientId}/modules/${moduleId}/disable`),
+    // Assignment management
+    myAssigned: () => apiClient.get("/clients/my-assigned"),
+    teamAssigned: () => apiClient.get("/clients/team-assigned"),
+    reassign: (clientId: string, userId: string | null) =>
+      apiClient.post(`/clients/${clientId}/reassign`, { new_assignee_id: userId }),
   },
 
   // Accounts

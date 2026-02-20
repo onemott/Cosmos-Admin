@@ -24,15 +24,19 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronRight,
+  UserCog,
+  UsersRound,
 } from "lucide-react";
 import { useUsers, useTenants } from "@/hooks/use-api";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth, useIsTenantAdmin } from "@/contexts/auth-context";
 import {
   UserDialog,
   DeleteUserDialog,
   ChangePasswordDialog,
+  AssignSupervisorDialog,
 } from "@/components/users";
 import { useTranslation } from "@/lib/i18n";
+import Link from "next/link";
 
 interface User {
   id: string;
@@ -45,6 +49,10 @@ interface User {
   created_at: string;
   updated_at: string;
   roles: string[];
+  supervisor_id?: string;
+  supervisor_name?: string;
+  department?: string;
+  subordinate_count?: number;
 }
 
 interface Tenant {
@@ -58,6 +66,7 @@ export default function UsersPage() {
   const { data: users, isLoading, error } = useUsers();
   const { data: tenants } = useTenants();
   const { t } = useTranslation();
+  const isTenantAdmin = useIsTenantAdmin();
 
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -65,6 +74,7 @@ export default function UsersPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteMode, setDeleteMode] = useState<"deactivate" | "permanent">("deactivate");
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [supervisorDialogOpen, setSupervisorDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   
   // Collapsible state for tenant groups (all open by default)
@@ -120,6 +130,11 @@ export default function UsersPage() {
     setDeleteMode("permanent");
     setDeleteDialogOpen(true);
   };
+
+  const handleAssignSupervisor = (user: User) => {
+    setSelectedUser(user);
+    setSupervisorDialogOpen(true);
+  };
   
   const toggleTenant = (tenantId: string) => {
     setOpenTenants(prev => ({
@@ -164,6 +179,27 @@ export default function UsersPage() {
             </Badge>
           </div>
           <div className="text-sm text-muted-foreground">{user.email}</div>
+          {/* Organization info */}
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            {user.department && (
+              <span className="flex items-center gap-1">
+                <Building2 className="h-3 w-3" />
+                {user.department}
+              </span>
+            )}
+            {user.supervisor_name && (
+              <span className="flex items-center gap-1">
+                <UserCog className="h-3 w-3" />
+                {t("users.supervisor")}: {user.supervisor_name}
+              </span>
+            )}
+            {(user.subordinate_count ?? 0) > 0 && (
+              <span className="flex items-center gap-1">
+                <UsersRound className="h-3 w-3" />
+                {user.subordinate_count} {t("users.subordinates")}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -191,6 +227,12 @@ export default function UsersPage() {
                   <KeyRound className="mr-2 h-4 w-4" />
                   {isCurrentUser(user.id) ? t("users.changePassword") : t("users.resetPassword")}
                 </DropdownMenuItem>
+                {isTenantAdmin && !isCurrentUser(user.id) && (
+                  <DropdownMenuItem onClick={() => handleAssignSupervisor(user)}>
+                    <UserCog className="mr-2 h-4 w-4" />
+                    {t("users.assignSupervisor")}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
               </>
             )}
@@ -202,6 +244,14 @@ export default function UsersPage() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
+            )}
+            {(user.subordinate_count ?? 0) > 0 && (
+              <DropdownMenuItem asChild>
+                <Link href="/team">
+                  <UsersRound className="mr-2 h-4 w-4" />
+                  {t("users.viewTeam")}
+                </Link>
+              </DropdownMenuItem>
             )}
             {isAdmin && !isCurrentUser(user.id) && (
               <>
@@ -394,6 +444,16 @@ export default function UsersPage() {
         open={passwordDialogOpen}
         onOpenChange={(open) => {
           setPasswordDialogOpen(open);
+          if (!open) setSelectedUser(null);
+        }}
+        user={selectedUser}
+      />
+
+      {/* Assign Supervisor Dialog */}
+      <AssignSupervisorDialog
+        open={supervisorDialogOpen}
+        onOpenChange={(open) => {
+          setSupervisorDialogOpen(open);
           if (!open) setSelectedUser(null);
         }}
         user={selectedUser}

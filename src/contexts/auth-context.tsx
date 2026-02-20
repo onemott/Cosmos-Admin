@@ -20,6 +20,16 @@ import {
   isAuthenticated as checkIsAuthenticated,
 } from "@/lib/auth";
 
+// Platform tenant ID (must match backend)
+export const PLATFORM_TENANT_ID = "00000000-0000-0000-0000-000000000000";
+
+// Role constants
+export const PLATFORM_ROLES = ["super_admin", "platform_admin", "platform_user"];
+export const PLATFORM_ADMIN_ROLES = ["super_admin", "platform_admin"];
+export const TENANT_ADMIN_ROLES = ["super_admin", "platform_admin", "tenant_admin"];
+export const SUPERVISOR_ROLES = ["super_admin", "platform_admin", "tenant_admin", "eam_supervisor"];
+export const ALL_STAFF_ROLES = ["super_admin", "platform_admin", "tenant_admin", "eam_supervisor", "eam_staff"];
+
 interface User {
   id: string;
   tenantId: string;
@@ -180,5 +190,98 @@ export function useRole(role: string): boolean {
  */
 export function useIsSuperAdmin(): boolean {
   return useRole("super_admin");
+}
+
+/**
+ * Hook for checking if user belongs to the platform tenant.
+ */
+export function useIsPlatformTenant(): boolean {
+  const { user } = useAuth();
+  return user?.tenantId === PLATFORM_TENANT_ID;
+}
+
+/**
+ * Hook for checking if user has platform-level access (any platform role).
+ */
+export function useIsPlatformLevel(): boolean {
+  const { user } = useAuth();
+  return user?.roles.some(r => PLATFORM_ROLES.includes(r)) ?? false;
+}
+
+/**
+ * Hook for checking if user has platform admin access.
+ */
+export function useIsPlatformAdmin(): boolean {
+  const { user } = useAuth();
+  return user?.roles.some(r => PLATFORM_ADMIN_ROLES.includes(r)) ?? false;
+}
+
+/**
+ * Hook for checking if user has tenant admin access or higher.
+ */
+export function useIsTenantAdmin(): boolean {
+  const { user } = useAuth();
+  return user?.roles.some(r => TENANT_ADMIN_ROLES.includes(r)) ?? false;
+}
+
+/**
+ * Hook for checking if user has supervisor access or higher.
+ */
+export function useIsSupervisor(): boolean {
+  const { user } = useAuth();
+  return user?.roles.some(r => SUPERVISOR_ROLES.includes(r)) ?? false;
+}
+
+/**
+ * Hook for checking if user is EAM staff (lowest level).
+ */
+export function useIsEamStaff(): boolean {
+  return useRole("eam_staff");
+}
+
+/**
+ * Get the user's highest role level.
+ * Returns: 'platform_admin' | 'platform_user' | 'tenant_admin' | 'eam_supervisor' | 'eam_staff' | 'none'
+ */
+export function useRoleLevel(): string {
+  const { user } = useAuth();
+  if (!user) return "none";
+  
+  const roles = user.roles;
+  
+  if (roles.some(r => ["super_admin", "platform_admin"].includes(r))) {
+    return "platform_admin";
+  }
+  if (roles.includes("platform_user")) {
+    return "platform_user";
+  }
+  if (roles.includes("tenant_admin")) {
+    return "tenant_admin";
+  }
+  if (roles.includes("eam_supervisor")) {
+    return "eam_supervisor";
+  }
+  if (roles.includes("eam_staff")) {
+    return "eam_staff";
+  }
+  return "none";
+}
+
+/**
+ * Get role display name for UI.
+ */
+export function useRoleDisplayName(): string {
+  const roleLevel = useRoleLevel();
+  
+  const displayNames: Record<string, string> = {
+    platform_admin: "平台管理员",
+    platform_user: "平台用户",
+    tenant_admin: "租户管理员",
+    eam_supervisor: "部门主管",
+    eam_staff: "员工",
+    none: "无角色",
+  };
+  
+  return displayNames[roleLevel] || roleLevel;
 }
 

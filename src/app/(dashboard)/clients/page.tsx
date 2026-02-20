@@ -15,10 +15,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Loader2, UserCheck, Plus, MoreHorizontal, Pencil, Trash2, Eye, Blocks, Clock } from "lucide-react";
-import { useClients, useClient } from "@/hooks/use-api";
-import { useAuth } from "@/contexts/auth-context";
-import { ClientDialog, DeleteClientDialog, ClientModulesDialog, ClientModuleBadges } from "@/components/clients";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, Loader2, UserCheck, Plus, MoreHorizontal, Pencil, Trash2, Eye, Blocks, Clock, UserCog, Users } from "lucide-react";
+import { useClients, useClient, useUsers } from "@/hooks/use-api";
+import { useAuth, useIsTenantAdmin, useIsSupervisor } from "@/contexts/auth-context";
+import { ClientDialog, DeleteClientDialog, ClientModulesDialog, ClientModuleBadges, ReassignClientDialog } from "@/components/clients";
 import { useTranslation } from "@/lib/i18n";
 
 interface ClientSummary {
@@ -27,6 +34,8 @@ interface ClientSummary {
   client_type: "individual" | "entity" | "trust";
   kyc_status: "pending" | "in_progress" | "approved" | "rejected" | "expired";
   total_aum?: number;
+  assigned_to_user_id?: string;
+  assigned_to_name?: string;
 }
 
 interface ClientFull {
@@ -43,17 +52,37 @@ interface ClientFull {
   tenant_id: string;
   created_at: string;
   updated_at: string;
+  assigned_to_user_id?: string;
+}
+
+interface User {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  tenant_id: string;
+  is_active: boolean;
 }
 
 export default function ClientsPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const isTenantAdmin = useIsTenantAdmin();
+  const isSupervisor = useIsSupervisor();
   const [search, setSearch] = useState("");
   const [kycFilter, setKycFilter] = useState<string>("all");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
+  
+  // Get users for assignee filter dropdown
+  const { data: usersData } = useUsers({ limit: 100 });
+  const userList = (usersData as User[]) || [];
+  const tenantUsers = userList.filter(u => u.tenant_id === user?.tenantId && u.is_active);
+  
   const { data: clients, isLoading, error } = useClients({ 
     search: search || undefined,
     kyc_status: kycFilter === "all" ? undefined : kycFilter,
+    assigned_to: assigneeFilter === "all" ? undefined : assigneeFilter === "unassigned" ? "null" : assigneeFilter,
   });
 
   // Dialog states
@@ -61,9 +90,11 @@ export default function ClientsPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [modulesDialogOpen, setModulesDialogOpen] = useState(false);
+  const [reassignDialogOpen, setReassignDialogOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [selectedClientForDelete, setSelectedClientForDelete] = useState<ClientSummary | null>(null);
   const [selectedClientForModules, setSelectedClientForModules] = useState<ClientSummary | null>(null);
+  const [selectedClientForReassign, setSelectedClientForReassign] = useState<ClientSummary | null>(null);
 
   // Fetch full client details when editing
   const { data: fullClientData } = useClient(selectedClientId || "", {
@@ -85,6 +116,11 @@ export default function ClientsPage() {
   const handleManageModules = (client: ClientSummary) => {
     setSelectedClientForModules(client);
     setModulesDialogOpen(true);
+  };
+
+  const handleReassign = (client: ClientSummary) => {
+    setSelectedClientForReassign(client);
+    setReassignDialogOpen(true);
   };
 
   const handleDelete = (client: ClientSummary) => {
@@ -163,18 +199,40 @@ export default function ClientsPage() {
       </div>
 
       {/* KYC Status Filter Tabs */}
-      <Tabs value={kycFilter} onValueChange={setKycFilter} className="w-full">
-        <TabsList>
-          <TabsTrigger value="all">{t("clients.allClients")}</TabsTrigger>
-          <TabsTrigger value="pending" className="gap-2">
-            <Clock className="h-3 w-3" />
-            {t("clients.pendingKYC")}
-          </TabsTrigger>
-          <TabsTrigger value="in_progress">{t("clients.inProgress")}</TabsTrigger>
-          <TabsTrigger value="approved">{t("clients.approved")}</TabsTrigger>
-          <TabsTrigger value="rejected">{t("clients.rejected")}</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex items-center justify-between gap-4">
+        <Tabs value={kycFilter} onValueChange={setKycFilter} className="flex-1">
+          <TabsList>
+            <TabsTrigger value="all">{t("clients.allClients")}</TabsTrigger>
+            <TabsTrigger value="pending" className="gap-2">
+              <Clock className="h-3 w-3" />
+              {t("clients.pendingKYC")}
+            </TabsTrigger>
+            <TabsTrigger value="in_progress">{t("clients.inProgress")}</TabsTrigger>
+            <TabsTrigger value="approved">{t("clients.approved")}</TabsTrigger>
+            <TabsTrigger value="rejected">{t("clients.rejected")}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        
+        {/* Assignee Filter */}
+        {(isTenantAdmin || isSupervisor) && (
+          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+            <SelectTrigger className="w-[200px]">
+              <Users className="mr-2 h-4 w-4" />
+              <SelectValue placeholder={t("clients.filterByAssignee")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("clients.allAssignees")}</SelectItem>
+              <SelectItem value={user?.id || "me"}>{t("clients.myClients")}</SelectItem>
+              <SelectItem value="unassigned">{t("clients.unassigned")}</SelectItem>
+              {tenantUsers.filter(u => u.id !== user?.id).map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.first_name} {u.last_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
 
       {error && (
         <Card className="border-red-200 bg-red-50">
@@ -224,10 +282,23 @@ export default function ClientsPage() {
                         {t("clients.kyc")}: {getKycStatusLabel(client.kyc_status)}
                       </Badge>
                     </div>
-                    {/* Module badges */}
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-muted-foreground">{t("clients.modules")}:</span>
-                      <ClientModuleBadges clientId={client.id} maxVisible={3} />
+                    {/* Module badges and assignee info */}
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-muted-foreground">{t("clients.modules")}:</span>
+                        <ClientModuleBadges clientId={client.id} maxVisible={3} />
+                      </div>
+                      {client.assigned_to_name && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <UserCog className="h-3 w-3" />
+                          <span>{t("clients.assignee")}: {client.assigned_to_name}</span>
+                        </div>
+                      )}
+                      {!client.assigned_to_user_id && (
+                        <Badge variant="outline" className="text-xs">
+                          {t("clients.unassigned")}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -257,6 +328,12 @@ export default function ClientsPage() {
                               <Blocks className="mr-2 h-4 w-4" />
                               {t("clients.manageModules")}
                             </DropdownMenuItem>
+                            {isTenantAdmin && (
+                              <DropdownMenuItem onClick={() => handleReassign(client)}>
+                                <UserCog className="mr-2 h-4 w-4" />
+                                {t("clients.reassign")}
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => handleDelete(client)}
@@ -309,6 +386,17 @@ export default function ClientsPage() {
           if (!open) setSelectedClientForDelete(null);
         }}
         client={selectedClientForDelete}
+      />
+
+      {/* Reassign Client Dialog */}
+      <ReassignClientDialog
+        open={reassignDialogOpen}
+        onOpenChange={(open) => {
+          setReassignDialogOpen(open);
+          if (!open) setSelectedClientForReassign(null);
+        }}
+        client={selectedClientForReassign}
+        currentTenantId={user?.tenantId}
       />
     </div>
   );

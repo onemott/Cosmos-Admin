@@ -4,4 +4,5 @@ export { ClientForm } from "./client-form";
 export { ClientModulesDialog } from "./client-modules-dialog";
 export { ClientModuleBadges } from "./client-module-badges";
 export { ClientDocuments } from "./client-documents";
+export { ReassignClientDialog } from "./reassign-client-dialog";
 
