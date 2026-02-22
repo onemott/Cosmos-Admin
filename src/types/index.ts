@@ -69,6 +69,38 @@ export interface UserWithHierarchy extends User {
   subordinates?: User[];
 }
 
+export interface AuditLog {
+  id: string;
+  tenant_id: string;
+  event_type: string;
+  level: string;
+  category: string;
+  resource_type: string;
+  resource_id?: string | null;
+  action: string;
+  outcome: string;
+  user_id?: string | null;
+  user_email?: string | null;
+  ip_address?: string | null;
+  user_agent?: string | null;
+  request_id?: string | null;
+  old_value?: Record<string, unknown> | null;
+  new_value?: Record<string, unknown> | null;
+  extra_data?: Record<string, unknown> | null;
+  tags?: string[] | null;
+  event_hash?: string | null;
+  prev_hash?: string | null;
+  created_at: string;
+}
+
+export interface AuditLogListResponse {
+  items: AuditLog[];
+  total: number;
+  skip: number;
+  limit: number;
+  has_more: boolean;
+}
+
 export interface TeamTreeNode {
   id: string;
   first_name: string;
@@ -328,24 +360,6 @@ export interface TaskUpdate {
   workflow_state?: WorkflowState;
   approval_required_by?: string;
   proposal_data?: Record<string, unknown>;
-}
-
-export interface AuditLog {
-  id: string;
-  tenant_id: string;
-  event_type: string;
-  resource_type: string;
-  resource_id?: string;
-  action: string;
-  user_id?: string;
-  user_email?: string;
-  ip_address?: string;
-  user_agent?: string;
-  request_id?: string;
-  old_value?: Record<string, unknown>;
-  new_value?: Record<string, unknown>;
-  metadata?: Record<string, unknown>;
-  created_at: string;
 }
 
 export interface PaginatedResponse<T> {

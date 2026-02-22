@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Loader2, UserX, Users } from "lucide-react";
 import { useAssignSupervisor, useUsers } from "@/hooks/use-api";
+import { SUPERVISOR_ROLES } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/lib/i18n";
 
@@ -53,8 +54,7 @@ export function AssignSupervisorDialog({
       if (u.tenant_id !== user.tenant_id) return false;
       if (!u.is_active) return false;
       // Only show users with supervisor-level roles
-      const supervisorRoles = ["super_admin", "platform_admin", "tenant_admin", "eam_supervisor"];
-      return u.roles?.some((role) => supervisorRoles.includes(role));
+      return u.roles?.some((role) => SUPERVISOR_ROLES.includes(role));
     });
   }, [users, user]);
 

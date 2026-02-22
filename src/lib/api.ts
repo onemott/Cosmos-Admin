@@ -1,4 +1,5 @@
 import { getAccessToken, getRefreshToken, setTokens, clearTokens } from "@/lib/auth";
+import type { AuditLogListResponse } from "@/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
@@ -359,8 +360,90 @@ export const api = {
 
   // Audit Logs
   audit: {
-    list: (params?: { skip?: number; limit?: number }) =>
-      apiClient.get(`/audit?skip=${params?.skip || 0}&limit=${params?.limit || 50}`),
+    list: (params?: {
+      skip?: number;
+      limit?: number;
+      search?: string;
+      event_type?: string;
+      level?: string;
+      category?: string;
+      action?: string;
+      resource_type?: string;
+      resource_id?: string;
+      user_id?: string;
+      user_email?: string;
+      request_id?: string;
+      ip_address?: string;
+      outcome?: string;
+      start_time?: string;
+      end_time?: string;
+      tenant_id?: string;
+    }): Promise<AuditLogListResponse> => {
+      const searchParams = new URLSearchParams({
+        skip: String(params?.skip || 0),
+        limit: String(params?.limit || 50),
+      });
+      if (params?.search) searchParams.set("search", params.search);
+      if (params?.event_type) searchParams.set("event_type", params.event_type);
+      if (params?.level) searchParams.set("level", params.level);
+      if (params?.category) searchParams.set("category", params.category);
+      if (params?.action) searchParams.set("action", params.action);
+      if (params?.resource_type) searchParams.set("resource_type", params.resource_type);
+      if (params?.resource_id) searchParams.set("resource_id", params.resource_id);
+      if (params?.user_id) searchParams.set("user_id", params.user_id);
+      if (params?.user_email) searchParams.set("user_email", params.user_email);
+      if (params?.request_id) searchParams.set("request_id", params.request_id);
+      if (params?.ip_address) searchParams.set("ip_address", params.ip_address);
+      if (params?.outcome) searchParams.set("outcome", params.outcome);
+      if (params?.start_time) searchParams.set("start_time", params.start_time);
+      if (params?.end_time) searchParams.set("end_time", params.end_time);
+      if (params?.tenant_id) searchParams.set("tenant_id", params.tenant_id);
+      return apiClient.get<AuditLogListResponse>(`/audit-logs?${searchParams}`);
+    },
+    summary: (params?: { start_time?: string; end_time?: string; tenant_id?: string }) => {
+      const searchParams = new URLSearchParams();
+      if (params?.start_time) searchParams.set("start_time", params.start_time);
+      if (params?.end_time) searchParams.set("end_time", params.end_time);
+      if (params?.tenant_id) searchParams.set("tenant_id", params.tenant_id);
+      const query = searchParams.toString();
+      return apiClient.get(`/audit-logs/summary${query ? `?${query}` : ""}`);
+    },
+    exportUrl: (params?: {
+      search?: string;
+      event_type?: string;
+      level?: string;
+      category?: string;
+      action?: string;
+      resource_type?: string;
+      resource_id?: string;
+      user_id?: string;
+      user_email?: string;
+      request_id?: string;
+      ip_address?: string;
+      outcome?: string;
+      start_time?: string;
+      end_time?: string;
+      tenant_id?: string;
+    }) => {
+      const searchParams = new URLSearchParams();
+      if (params?.search) searchParams.set("search", params.search);
+      if (params?.event_type) searchParams.set("event_type", params.event_type);
+      if (params?.level) searchParams.set("level", params.level);
+      if (params?.category) searchParams.set("category", params.category);
+      if (params?.action) searchParams.set("action", params.action);
+      if (params?.resource_type) searchParams.set("resource_type", params.resource_type);
+      if (params?.resource_id) searchParams.set("resource_id", params.resource_id);
+      if (params?.user_id) searchParams.set("user_id", params.user_id);
+      if (params?.user_email) searchParams.set("user_email", params.user_email);
+      if (params?.request_id) searchParams.set("request_id", params.request_id);
+      if (params?.ip_address) searchParams.set("ip_address", params.ip_address);
+      if (params?.outcome) searchParams.set("outcome", params.outcome);
+      if (params?.start_time) searchParams.set("start_time", params.start_time);
+      if (params?.end_time) searchParams.set("end_time", params.end_time);
+      if (params?.tenant_id) searchParams.set("tenant_id", params.tenant_id);
+      const query = searchParams.toString();
+      return `${API_BASE_URL}/audit-logs/export${query ? `?${query}` : ""}`;
+    },
   },
 
   // Tasks
@@ -414,6 +497,7 @@ export const api = {
       total_aum: number;
       formatted_aum: string;
     }>("/stats/tenant"),
+    teamSummary: () => apiClient.get("/stats/team-summary"),
     health: () => apiClient.get<{
       api_server: string;
       database: string;

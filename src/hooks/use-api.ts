@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import type { AuditLogListResponse } from "@/types";
 
 // Tenants
 export function useTenants(params?: { skip?: number; limit?: number }) {
@@ -631,8 +632,26 @@ export function useClientTasks(clientId: string, options?: { enabled?: boolean }
 }
 
 // Audit Logs
-export function useAuditLogs(params?: { skip?: number; limit?: number }) {
-  return useQuery({
+export function useAuditLogs(params?: {
+  skip?: number;
+  limit?: number;
+  search?: string;
+  event_type?: string;
+  level?: string;
+  category?: string;
+  action?: string;
+  resource_type?: string;
+  resource_id?: string;
+  user_id?: string;
+  user_email?: string;
+  request_id?: string;
+  ip_address?: string;
+  outcome?: string;
+  start_time?: string;
+  end_time?: string;
+  tenant_id?: string;
+}) {
+  return useQuery<AuditLogListResponse>({
     queryKey: ["audit", params],
     queryFn: () => api.audit.list(params),
   });

@@ -12,7 +12,7 @@ import {
   ChevronRight,
   ChevronDown,
 } from "lucide-react";
-import { useAuth, useIsSupervisor, useIsTenantAdmin } from "@/contexts/auth-context";
+import { PLATFORM_TENANT_ID, useAuth, useIsSupervisor, useIsTenantAdmin } from "@/contexts/auth-context";
 import { useTranslation } from "@/lib/i18n";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -52,6 +52,8 @@ export default function TeamPage() {
   const { t } = useTranslation();
   const isSupervisor = useIsSupervisor();
   const isTenantAdmin = useIsTenantAdmin();
+  const hasTenantAccess = !!user?.tenantId && user.tenantId !== PLATFORM_TENANT_ID;
+  const canViewTeam = !!user && (isSupervisor || isTenantAdmin) && hasTenantAccess;
   
   const [teamSummary, setTeamSummary] = useState<TeamSummary | null>(null);
   const [teamTree, setTeamTree] = useState<TreeNode | null>(null);
@@ -61,35 +63,41 @@ export default function TeamPage() {
   useEffect(() => {
     async function fetchData() {
       if (!user) return;
+      if (!canViewTeam) {
+        setTeamSummary(null);
+        setTeamTree(null);
+        setError(null);
+        setLoading(false);
+        return;
+      }
       
       try {
         setLoading(true);
+        setError(null);
         
-        // Fetch team summary
-        const summaryRes = await api.get("/stats/team-summary");
-        setTeamSummary(summaryRes.data);
+        const summaryRes = (await api.stats.teamSummary()) as TeamSummary;
+        setTeamSummary(summaryRes);
         
-        // Fetch team tree
-        const treeRes = await api.get(`/users/${user.id}/team-tree`);
-        setTeamTree(treeRes.data);
-        
+        const treeRes = (await api.users.getTeamTree(user.id)) as TreeNode;
+        setTeamTree(treeRes);
       } catch (err: any) {
-        setError(err.response?.data?.detail || "Failed to load team data");
+        const message = err instanceof Error ? err.message : "Failed to load team data";
+        setError(message);
       } finally {
         setLoading(false);
       }
     }
     
     fetchData();
-  }, [user]);
+  }, [user, canViewTeam]);
 
-  if (!isSupervisor && !isTenantAdmin) {
+  if (user && !canViewTeam) {
     return (
       <div className="container mx-auto py-8">
         <Card>
           <CardContent className="py-8 text-center">
             <p className="text-muted-foreground">
-              You don't have permission to view this page.
+              You don&apos;t have permission to view this page.
             </p>
           </CardContent>
         </Card>

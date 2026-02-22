@@ -23,12 +23,29 @@ import {
 // Platform tenant ID (must match backend)
 export const PLATFORM_TENANT_ID = "00000000-0000-0000-0000-000000000000";
 
-// Role constants
-export const PLATFORM_ROLES = ["super_admin", "platform_admin", "platform_user"];
-export const PLATFORM_ADMIN_ROLES = ["super_admin", "platform_admin"];
-export const TENANT_ADMIN_ROLES = ["super_admin", "platform_admin", "tenant_admin"];
-export const SUPERVISOR_ROLES = ["super_admin", "platform_admin", "tenant_admin", "eam_supervisor"];
-export const ALL_STAFF_ROLES = ["super_admin", "platform_admin", "tenant_admin", "eam_supervisor", "eam_staff"];
+const parseRoleList = (value: string | undefined, fallback: string[]) =>
+  value ? value.split(",").map((role) => role.trim()).filter(Boolean) : fallback;
+
+export const PLATFORM_ROLES = parseRoleList(
+  process.env.NEXT_PUBLIC_PLATFORM_ROLES,
+  ["super_admin", "platform_admin", "platform_user"]
+);
+export const PLATFORM_ADMIN_ROLES = parseRoleList(
+  process.env.NEXT_PUBLIC_PLATFORM_ADMIN_ROLES,
+  ["super_admin", "platform_admin"]
+);
+export const TENANT_ADMIN_ROLES = parseRoleList(
+  process.env.NEXT_PUBLIC_TENANT_ADMIN_ROLES,
+  ["super_admin", "platform_admin", "tenant_admin"]
+);
+export const SUPERVISOR_ROLES = parseRoleList(
+  process.env.NEXT_PUBLIC_SUPERVISOR_ROLES,
+  ["super_admin", "platform_admin", "tenant_admin", "eam_supervisor"]
+);
+export const ALL_STAFF_ROLES = parseRoleList(
+  process.env.NEXT_PUBLIC_ALL_STAFF_ROLES,
+  ["super_admin", "platform_admin", "tenant_admin", "eam_supervisor", "eam_staff"]
+);
 
 interface User {
   id: string;

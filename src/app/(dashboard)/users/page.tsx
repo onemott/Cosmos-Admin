@@ -82,9 +82,7 @@ export default function UsersPage() {
 
   const isSuperAdmin = currentUser?.roles.includes("super_admin") ?? false;
   const isPlatformAdmin = isSuperAdmin || currentUser?.roles.includes("platform_admin");
-  const isAdmin = isPlatformAdmin || currentUser?.roles.some(role => 
-    ["tenant_admin", "eam_manager"].includes(role)
-  );
+  const isAdmin = isPlatformAdmin || isTenantAdmin;
   const userList = (users as User[]) || [];
   const tenantList = (tenants as Tenant[]) || [];
 
