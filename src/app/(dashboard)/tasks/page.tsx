@@ -221,7 +221,7 @@ export default function TasksPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("common.all")} {t("common.type")}</SelectItem>
-                {(["onboarding", "kyc_review", "document_review", "proposal_approval", "product_request", "compliance_check", "risk_review", "account_opening", "general"] as TaskType[]).map((key) => (
+                {(["onboarding", "kyc_review", "document_review", "proposal_approval", "product_request", "lightweight_interest", "compliance_check", "risk_review", "account_opening", "general"] as TaskType[]).map((key) => (
                   <SelectItem key={key} value={key}>
                     {getTaskTypeLabel(key)}
                   </SelectItem>

@@ -311,6 +311,7 @@
       "document_review": "文档审核",
       "proposal_approval": "提案审批",
       "product_request": "产品申请",
+      "lightweight_interest": "轻量兴趣",
       "compliance_check": "合规检查",
       "risk_review": "风险评估",
       "account_opening": "开户",
@@ -354,6 +355,40 @@
       "totalMinInvestment": "最低投资总额",
       "totalRequestedInvestment": "申请投资总额",
       "clientNotes": "客户备注"
+    },
+    "lightweightInterest": {
+      "product": "产品",
+      "interestType": "意向类型",
+      "moduleCode": "模块",
+      "submittedAt": "提交时间",
+      "clientNotes": "客户备注",
+      "eamMessage": "顾问留言",
+      "sentToClientAt": "发送给客户",
+      "types": {
+        "consult": "咨询",
+        "reserve": "预约",
+        "favorite": "收藏"
+      }
+    },
+    "proposalData": {
+      "otherDetails": "其他信息",
+      "eamMessage": "顾问留言",
+      "sentToClientAt": "发送给客户",
+      "submittedAt": "提交时间",
+      "clientNotes": "客户备注",
+      "notes": "备注",
+      "reason": "原因",
+      "status": "状态",
+      "documents": "文档",
+      "checklist": "清单",
+      "riskLevel": "风险等级",
+      "accountType": "账户类型",
+      "accountNumber": "账户号码",
+      "email": "邮箱",
+      "phone": "电话",
+      "address": "地址",
+      "startDate": "开始日期",
+      "endDate": "结束日期"
     }
   },
   "modules": {

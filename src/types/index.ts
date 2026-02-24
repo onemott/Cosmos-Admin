@@ -256,6 +256,7 @@ export type TaskType =
   | "document_review"
   | "proposal_approval"
   | "product_request"
+  | "lightweight_interest"
   | "compliance_check"
   | "risk_review"
   | "account_opening"

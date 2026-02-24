@@ -311,6 +311,7 @@
       "document_review": "Document Review",
       "proposal_approval": "Proposal Approval",
       "product_request": "Product Request",
+      "lightweight_interest": "Lightweight Interest",
       "compliance_check": "Compliance Check",
       "risk_review": "Risk Review",
       "account_opening": "Account Opening",
@@ -354,6 +355,40 @@
       "totalMinInvestment": "Total Minimum Investment",
       "totalRequestedInvestment": "Total Requested Investment",
       "clientNotes": "Client Notes"
+    },
+    "lightweightInterest": {
+      "product": "Product",
+      "interestType": "Interest Type",
+      "moduleCode": "Module",
+      "submittedAt": "Submitted At",
+      "clientNotes": "Client Notes",
+      "eamMessage": "Advisor Message",
+      "sentToClientAt": "Sent to client",
+      "types": {
+        "consult": "Consult",
+        "reserve": "Reserve",
+        "favorite": "Favorite"
+      }
+    },
+    "proposalData": {
+      "otherDetails": "Other Details",
+      "eamMessage": "Advisor Message",
+      "sentToClientAt": "Sent to Client",
+      "submittedAt": "Submitted At",
+      "clientNotes": "Client Notes",
+      "notes": "Notes",
+      "reason": "Reason",
+      "status": "Status",
+      "documents": "Documents",
+      "checklist": "Checklist",
+      "riskLevel": "Risk Level",
+      "accountType": "Account Type",
+      "accountNumber": "Account Number",
+      "email": "Email",
+      "phone": "Phone",
+      "address": "Address",
+      "startDate": "Start Date",
+      "endDate": "End Date"
     }
   },
   "modules": {

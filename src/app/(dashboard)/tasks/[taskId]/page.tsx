@@ -254,10 +254,13 @@ export default function TaskDetailPage() {
               <CardContent>
                 {taskData.task_type === "product_request" && taskData.proposal_data ? (
                   <ProductRequestDisplay proposalData={taskData.proposal_data} />
+                ) : taskData.task_type === "lightweight_interest" && taskData.proposal_data ? (
+                  <LightweightInterestDisplay proposalData={taskData.proposal_data} />
                 ) : (
-                  <pre className="text-sm bg-muted p-4 rounded-lg overflow-auto max-h-64">
-                    {JSON.stringify(taskData.proposal_data, null, 2)}
-                  </pre>
+                  <TypeAwareProposalDisplay
+                    taskType={taskData.task_type}
+                    proposalData={taskData.proposal_data}
+                  />
                 )}
               </CardContent>
             </Card>
@@ -617,5 +620,249 @@ function ProductRequestDisplay({ proposalData }: { proposalData: Record<string, 
       )}
     </div>
   );
+}
+
+function LightweightInterestDisplay({ proposalData }: { proposalData: Record<string, unknown> }) {
+  const { t } = useTranslation();
+  const productName = proposalData.product_name as string | undefined;
+  const productId = proposalData.product_id as string | undefined;
+  const moduleCode = proposalData.module_code as string | undefined;
+  const interestType = proposalData.interest_type as string | undefined;
+  const clientNotes = proposalData.client_notes as string | undefined;
+  const submittedAt = proposalData.submitted_at as string | undefined;
+  const eamMessage = proposalData.eam_message as string | undefined;
+  const sentToClientAt = proposalData.sent_to_client_at as string | undefined;
+
+  const interestLabel = interestType
+    ? t(`tasks.lightweightInterest.types.${interestType}`)
+    : t("common.noData");
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <h4 className="text-sm font-medium mb-1">{t("tasks.lightweightInterest.product")}</h4>
+          <p className="text-sm">{productName || t("common.noData")}</p>
+          {productId && (
+            <p className="text-xs text-muted-foreground">{productId}</p>
+          )}
+        </div>
+        <div>
+          <h4 className="text-sm font-medium mb-1">{t("tasks.lightweightInterest.interestType")}</h4>
+          <p className="text-sm">{interestLabel}</p>
+        </div>
+        <div>
+          <h4 className="text-sm font-medium mb-1">{t("tasks.lightweightInterest.moduleCode")}</h4>
+          <p className="text-sm text-muted-foreground">{moduleCode || t("common.noData")}</p>
+        </div>
+        <div>
+          <h4 className="text-sm font-medium mb-1">{t("tasks.lightweightInterest.submittedAt")}</h4>
+          <p className="text-sm text-muted-foreground">
+            {submittedAt ? format(new Date(submittedAt), "MMM d, yyyy HH:mm") : t("common.noData")}
+          </p>
+        </div>
+      </div>
+
+      {clientNotes && (
+        <div className="pt-2 border-t">
+          <h4 className="text-sm font-medium mb-1">{t("tasks.lightweightInterest.clientNotes")}</h4>
+          <p className="text-sm text-muted-foreground">{clientNotes}</p>
+        </div>
+      )}
+
+      {eamMessage && (
+        <div className="pt-2 border-t">
+          <h4 className="text-sm font-medium mb-1">{t("tasks.lightweightInterest.eamMessage")}</h4>
+          <p className="text-sm text-muted-foreground">{eamMessage}</p>
+          {sentToClientAt && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("tasks.lightweightInterest.sentToClientAt")}{" "}
+              {format(new Date(sentToClientAt), "MMM d, yyyy HH:mm")}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TypeAwareProposalDisplay({
+  taskType,
+  proposalData,
+}: {
+  taskType: string;
+  proposalData: Record<string, unknown>;
+}) {
+  const { t } = useTranslation();
+  const preferredKeys = getPreferredKeys(taskType);
+  const entries = Object.entries(proposalData).filter(([, value]) => value !== undefined);
+
+  if (entries.length === 0) {
+    return (
+      <pre className="text-sm bg-muted p-4 rounded-lg overflow-auto max-h-64">
+        {JSON.stringify(proposalData, null, 2)}
+      </pre>
+    );
+  }
+
+  const primaryEntries = preferredKeys
+    .map((key) => [key, proposalData[key]] as const)
+    .filter(([, value]) => value !== undefined);
+  const remainingEntries = entries.filter(([key]) => !preferredKeys.includes(key));
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {(primaryEntries.length > 0 ? primaryEntries : entries).map(([key, value]) => {
+          const { node, block } = renderProposalValue(value, t);
+          return (
+            <div key={key} className={block ? "md:col-span-2" : undefined}>
+              <h4 className="text-sm font-medium mb-1">{getLabelForKey(key, t)}</h4>
+              {node}
+            </div>
+          );
+        })}
+      </div>
+
+      {remainingEntries.length > 0 && primaryEntries.length > 0 && (
+        <div className="pt-2 border-t">
+          <h4 className="text-sm font-medium mb-3">{t("tasks.proposalData.otherDetails")}</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {remainingEntries.map(([key, value]) => {
+              const { node, block } = renderProposalValue(value, t);
+              return (
+                <div key={key} className={block ? "md:col-span-2" : undefined}>
+                  <h4 className="text-sm font-medium mb-1">{getLabelForKey(key, t)}</h4>
+                  {node}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatProposalKey(key: string) {
+  return key
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getPreferredKeys(taskType: string) {
+  const map: Record<string, string[]> = {
+    onboarding: ["notes", "client_notes", "documents", "checklist", "submitted_at"],
+    kyc_review: ["risk_level", "documents", "checklist", "notes", "submitted_at"],
+    document_review: ["documents", "notes", "submitted_at"],
+    proposal_approval: ["eam_message", "sent_to_client_at", "client_notes", "submitted_at"],
+    compliance_check: ["checklist", "notes", "submitted_at"],
+    risk_review: ["risk_level", "notes", "submitted_at"],
+    account_opening: ["account_type", "documents", "notes", "submitted_at"],
+    general: ["notes", "client_notes", "submitted_at"],
+  };
+  return map[taskType] || [];
+}
+
+function getLabelForKey(key: string, t: ReturnType<typeof useTranslation>["t"]) {
+  const map: Record<string, string> = {
+    eam_message: t("tasks.proposalData.eamMessage"),
+    sent_to_client_at: t("tasks.proposalData.sentToClientAt"),
+    submitted_at: t("tasks.proposalData.submittedAt"),
+    client_notes: t("tasks.proposalData.clientNotes"),
+    notes: t("tasks.proposalData.notes"),
+    reason: t("tasks.proposalData.reason"),
+    status: t("tasks.proposalData.status"),
+    documents: t("tasks.proposalData.documents"),
+    checklist: t("tasks.proposalData.checklist"),
+    risk_level: t("tasks.proposalData.riskLevel"),
+    account_type: t("tasks.proposalData.accountType"),
+    account_number: t("tasks.proposalData.accountNumber"),
+    email: t("tasks.proposalData.email"),
+    phone: t("tasks.proposalData.phone"),
+    address: t("tasks.proposalData.address"),
+    start_date: t("tasks.proposalData.startDate"),
+    end_date: t("tasks.proposalData.endDate"),
+  };
+  return map[key] || formatProposalKey(key);
+}
+
+function renderProposalValue(value: unknown, t: ReturnType<typeof useTranslation>["t"]) {
+  if (value === null || value === undefined) {
+    return { node: <p className="text-sm text-muted-foreground">{t("common.noData")}</p>, block: false };
+  }
+
+  if (typeof value === "string") {
+    const formatted = formatIsoDate(value);
+    return {
+      node: (
+        <p className="text-sm text-muted-foreground">
+          {formatted ?? value}
+        </p>
+      ),
+      block: false,
+    };
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return { node: <p className="text-sm text-muted-foreground">{String(value)}</p>, block: false };
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return { node: <p className="text-sm text-muted-foreground">{t("common.noData")}</p>, block: false };
+    }
+
+    const isPrimitiveArray = value.every(
+      (item) => typeof item === "string" || typeof item === "number" || typeof item === "boolean"
+    );
+
+    if (isPrimitiveArray) {
+      return {
+        node: (
+          <div className="flex flex-wrap gap-2">
+            {value.map((item, index) => (
+              <span
+                key={`${String(item)}-${index}`}
+                className="px-2 py-1 rounded-md bg-muted text-xs text-muted-foreground"
+              >
+                {String(item)}
+              </span>
+            ))}
+          </div>
+        ),
+        block: false,
+      };
+    }
+
+    return {
+      node: (
+        <pre className="text-sm bg-muted p-3 rounded-lg overflow-auto max-h-64">
+          {JSON.stringify(value, null, 2)}
+        </pre>
+      ),
+      block: true,
+    };
+  }
+
+  return {
+    node: (
+      <pre className="text-sm bg-muted p-3 rounded-lg overflow-auto max-h-64">
+        {JSON.stringify(value, null, 2)}
+      </pre>
+    ),
+    block: true,
+  };
+}
+
+function formatIsoDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(value)) {
+    return null;
+  }
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    return null;
+  }
+  return format(new Date(parsed), "MMM d, yyyy HH:mm");
 }
 
