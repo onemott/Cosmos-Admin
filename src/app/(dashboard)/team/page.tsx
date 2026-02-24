@@ -258,7 +258,8 @@ export default function TeamPage() {
           </Card>
         )}
       </div>
-    </div>
+      </div>
+    </TenantOnly>
   );
 }
 
