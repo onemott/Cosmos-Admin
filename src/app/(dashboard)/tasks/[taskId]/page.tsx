@@ -529,6 +529,8 @@ function ProductRequestDisplay({ proposalData }: { proposalData: Record<string, 
   const totalMinInvestment = proposalData.total_min_investment as number | undefined;
   const totalRequestedAmount = proposalData.total_requested_amount as number | undefined;
   const clientNotes = proposalData.client_notes as string | undefined;
+  const eamMessage = proposalData.eam_message as string | undefined;
+  const sentToClientAt = proposalData.sent_to_client_at as string | undefined;
 
   // Determine which data to display
   const displayItems = orders.length > 0 ? orders : legacyProducts;
@@ -616,6 +618,19 @@ function ProductRequestDisplay({ proposalData }: { proposalData: Record<string, 
         <div className="pt-2 border-t">
           <h4 className="text-sm font-medium mb-1">{t("tasks.productRequest.clientNotes")}</h4>
           <p className="text-sm text-muted-foreground">{clientNotes}</p>
+        </div>
+      )}
+
+      {eamMessage && (
+        <div className="pt-2 border-t">
+          <h4 className="text-sm font-medium mb-1">{t("tasks.proposalData.eamMessage")}</h4>
+          <p className="text-sm text-muted-foreground">{eamMessage}</p>
+          {sentToClientAt && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {t("tasks.proposalData.sentToClientAt")}{" "}
+              {format(new Date(sentToClientAt), "MMM d, yyyy HH:mm")}
+            </p>
+          )}
         </div>
       )}
     </div>

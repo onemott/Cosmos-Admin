@@ -45,6 +45,7 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import { useTranslation, useLocalizedDate } from "@/lib/i18n";
 import { UserDataTooltip } from "@/components/ui/user-data-tooltip";
+import { TenantOnly } from "@/components/auth/tenant-only";
 import type { ClientUser, ClientUserListResponse, Client } from "@/types";
 
 interface ClientListResponse {
@@ -185,8 +186,9 @@ export default function ClientUsersPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <TenantOnly>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("clientUsers.title")}</h1>
           <p className="text-muted-foreground">
@@ -709,5 +711,6 @@ export default function ClientUsersPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </TenantOnly>
   );
 }

@@ -36,20 +36,20 @@ export const PLATFORM_ADMIN_ROLES = parseRoleList(
 );
 export const TENANT_ADMIN_ROLES = parseRoleList(
   process.env.NEXT_PUBLIC_TENANT_ADMIN_ROLES,
-  ["super_admin", "platform_admin", "tenant_admin"]
+  ["tenant_admin"]
 );
 export const SUPERVISOR_ROLES = parseRoleList(
   process.env.NEXT_PUBLIC_SUPERVISOR_ROLES,
-  ["super_admin", "platform_admin", "tenant_admin", "eam_supervisor"]
+  ["tenant_admin", "eam_supervisor"]
 );
 export const ALL_STAFF_ROLES = parseRoleList(
   process.env.NEXT_PUBLIC_ALL_STAFF_ROLES,
-  ["super_admin", "platform_admin", "tenant_admin", "eam_supervisor", "eam_staff"]
+  ["tenant_admin", "eam_supervisor", "eam_staff"]
 );
 
 interface User {
   id: string;
-  tenantId: string;
+  tenantId: string | null;
   roles: string[];
 }
 
@@ -214,7 +214,7 @@ export function useIsSuperAdmin(): boolean {
  */
 export function useIsPlatformTenant(): boolean {
   const { user } = useAuth();
-  return user?.tenantId === PLATFORM_TENANT_ID;
+  return !user?.tenantId || user?.tenantId === PLATFORM_TENANT_ID;
 }
 
 /**

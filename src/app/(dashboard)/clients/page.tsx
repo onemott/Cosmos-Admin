@@ -27,6 +27,7 @@ import { useClients, useClient, useUsers } from "@/hooks/use-api";
 import { useAuth, useIsTenantAdmin, useIsSupervisor } from "@/contexts/auth-context";
 import { ClientDialog, DeleteClientDialog, ClientModulesDialog, ClientModuleBadges, ReassignClientDialog } from "@/components/clients";
 import { useTranslation } from "@/lib/i18n";
+import { TenantOnly } from "@/components/auth/tenant-only";
 
 interface ClientSummary {
   id: string;
@@ -171,8 +172,9 @@ export default function ClientsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <TenantOnly>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("clients.title")}</h1>
           <p className="text-muted-foreground">
@@ -399,5 +401,6 @@ export default function ClientsPage() {
         currentTenantId={user?.tenantId}
       />
     </div>
+    </TenantOnly>
   );
 }

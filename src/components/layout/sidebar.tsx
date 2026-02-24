@@ -68,27 +68,32 @@ const tenantNavigation = [
       name: t("sidebar.clients"),
     href: "/clients",
     icon: UserCircle,
+    tenantOnly: true,
   },
   {
       name: t("sidebar.team") || "Team",
     href: "/team",
     icon: UsersRound,
     supervisorOnly: true,
+    tenantOnly: true,
   },
   {
       name: t("sidebar.invitations"),
     href: "/invitations",
     icon: Ticket,
+    tenantOnly: true,
   },
   {
       name: t("sidebar.clientCredentials"),
     href: "/client-users",
     icon: KeyRound,
+    tenantOnly: true,
   },
   {
       name: t("sidebar.tasks"),
     href: "/tasks",
     icon: ClipboardList,
+    tenantOnly: true,
   },
 ];
 
@@ -103,11 +108,13 @@ const systemNavigation = [
       name: t("sidebar.branding"),
     href: "/branding",
     icon: Palette,
+    tenantOnly: true,
   },
   {
       name: t("sidebar.integrations"),
     href: "/integrations",
     icon: Link2,
+    tenantOnly: true,
   },
   {
       name: t("sidebar.auditLogs"),
@@ -124,7 +131,7 @@ const bottomNavigation = [
   },
 ];
 
-  const NavLink = ({ item }: { item: { name: string; href: string; icon: React.ComponentType<{ className?: string }>; superAdminOnly?: boolean; supervisorOnly?: boolean } }) => {
+  const NavLink = ({ item }: { item: { name: string; href: string; icon: React.ComponentType<{ className?: string }>; superAdminOnly?: boolean; supervisorOnly?: boolean; tenantOnly?: boolean } }) => {
     // Hide platform-only items for non-platform users
     if (item.superAdminOnly && !isPlatformLevel) {
       return null;
@@ -132,6 +139,11 @@ const bottomNavigation = [
     
     // Hide supervisor-only items for non-supervisors
     if (item.supervisorOnly && !isSupervisor) {
+      return null;
+    }
+
+    // Hide tenant-only items for platform users
+    if (item.tenantOnly && isPlatformLevel) {
       return null;
     }
     
@@ -185,14 +197,16 @@ const bottomNavigation = [
       </nav>
 
       {/* Tenant / CRM Navigation */}
-      <nav className="space-y-1 px-3 py-2">
-        <p className="px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-          {t("sidebar.crm")}
-        </p>
-        {tenantNavigation.map((item) => (
-          <NavLink key={item.href} item={item} />
-        ))}
-      </nav>
+      {!isPlatformLevel && (
+        <nav className="space-y-1 px-3 py-2">
+          <p className="px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            {t("sidebar.crm")}
+          </p>
+          {tenantNavigation.map((item) => (
+            <NavLink key={item.href} item={item} />
+          ))}
+        </nav>
+      )}
 
       {/* System Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-2">

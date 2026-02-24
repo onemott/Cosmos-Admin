@@ -45,6 +45,7 @@ import { useInvitations, useCreateInvitation, useCancelInvitation, useClients } 
 import { useAuth } from "@/contexts/auth-context";
 import { useTranslation, useLocalizedDate } from "@/lib/i18n";
 import { UserDataTooltip } from "@/components/ui/user-data-tooltip";
+import { TenantOnly } from "@/components/auth/tenant-only";
 import type { Invitation, InvitationListResponse, Client } from "@/types";
 
 interface ClientListResponse {
@@ -177,8 +178,9 @@ export default function InvitationsPage() {
   const usedCount = invitations.filter((i) => i.status === "used").length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <TenantOnly>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{t("invitations.title")}</h1>
           <p className="text-muted-foreground">
@@ -580,5 +582,6 @@ export default function InvitationsPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </TenantOnly>
   );
 }

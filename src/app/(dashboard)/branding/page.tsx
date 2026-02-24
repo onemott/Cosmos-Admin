@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { Loader2, Palette, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTranslation } from "@/lib/i18n";
+import { TenantOnly } from "@/components/auth/tenant-only";
 import { BrandingResponse } from "@/types";
 
 export default function BrandingPage() {
@@ -78,9 +79,10 @@ export default function BrandingPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
+    <TenantOnly>
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
         <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
           <Palette className="h-8 w-8" />
           {t("sidebar.branding")}
@@ -93,6 +95,7 @@ export default function BrandingPage() {
       {/* Branding Form */}
       <BrandingForm tenantId={tenantId} tenantName={branding.tenant_name} />
     </div>
+    </TenantOnly>
   );
 }
 

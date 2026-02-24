@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { PLATFORM_TENANT_ID, useAuth, useIsSupervisor, useIsTenantAdmin } from "@/contexts/auth-context";
 import { useTranslation } from "@/lib/i18n";
+import { TenantOnly } from "@/components/auth/tenant-only";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -137,9 +138,10 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">团队管理</h1>
+    <TenantOnly>
+      <div className="container mx-auto py-8 space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">团队管理</h1>
         <p className="text-muted-foreground">
           查看和管理您的团队成员及业绩
         </p>

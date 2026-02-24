@@ -48,6 +48,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { TenantOnly } from "@/components/auth/tenant-only";
 import type {
   TaskSummary,
   TaskListResponse,
@@ -130,9 +131,10 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <TenantOnly>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{t("tasks.title")}</h1>
           <p className="text-muted-foreground">
@@ -436,6 +438,7 @@ export default function TasksPage() {
         </CardContent>
       </Card>
     </div>
+    </TenantOnly>
   );
 }
 
