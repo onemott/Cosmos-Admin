@@ -124,7 +124,7 @@
     "healthy": "Healthy",
     "unhealthy": "Unhealthy",
     "unknown": "Unknown",
-    "failedToLoad": "Failed to load dashboard stats. Make sure the backend is running at http://localhost:8000"
+    "failedToLoad": "Failed to load dashboard data. Please ensure backend service is running at http://127.0.0.1:8000"
   },
   "tenants": {
     "title": "Tenants",

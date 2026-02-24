@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Users, Wallet, UserCheck, Loader2, Shield } from "lucide-react";
 import { useDashboardStats, useSystemHealth } from "@/hooks/use-api";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth, useIsPlatformLevel } from "@/contexts/auth-context";
 import { useTranslation } from "@/lib/i18n";
 
 // Types for the new stats format
@@ -35,6 +35,7 @@ interface CombinedStats {
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const isPlatformLevel = useIsPlatformLevel();
   const { data: stats, isLoading: statsLoading, error: statsError } = useDashboardStats();
   const { data: health, isLoading: healthLoading } = useSystemHealth();
   const { t } = useTranslation();
@@ -155,19 +156,21 @@ export default function DashboardPage() {
       )}
 
       {/* Tenant Stats - Your CRM Data */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <UserCheck className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-            {isSuperAdmin ? t("dashboard.yourOrganizationCRM") : t("dashboard.yourOrganization")}
-          </h2>
+      {!isPlatformLevel && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <UserCheck className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              {t("dashboard.yourOrganization")}
+            </h2>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            {tenantCards.map((stat) => (
+              <StatCard key={stat.title} stat={stat} />
+            ))}
+          </div>
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {tenantCards.map((stat) => (
-            <StatCard key={stat.title} stat={stat} />
-          ))}
-        </div>
-      </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

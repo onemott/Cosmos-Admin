@@ -1,7 +1,7 @@
 import { getAccessToken, getRefreshToken, setTokens, clearTokens } from "@/lib/auth";
 import type { AuditLogListResponse } from "@/types";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
 if (process.env.NODE_ENV === "production" && !process.env.NEXT_PUBLIC_API_URL) {
   console.warn("NEXT_PUBLIC_API_URL is missing in production environment variables!");

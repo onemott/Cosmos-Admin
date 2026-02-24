@@ -43,7 +43,7 @@ interface User {
   email: string;
   first_name: string;
   last_name: string;
-  tenant_id: string;
+  tenant_id: string | null;
   is_active: boolean;
   is_superuser: boolean;
   created_at: string;
@@ -96,14 +96,16 @@ export default function UsersPage() {
   const usersByTenant: Record<string, User[]> = {};
   if (isPlatformAdmin) {
     userList.forEach(user => {
-      if (!usersByTenant[user.tenant_id]) {
-        usersByTenant[user.tenant_id] = [];
+      const key = user.tenant_id || "platform";
+      if (!usersByTenant[key]) {
+        usersByTenant[key] = [];
       }
-      usersByTenant[user.tenant_id].push(user);
+      usersByTenant[key].push(user);
     });
   }
 
   const getTenantName = (tenantId: string) => {
+    if (tenantId === "platform") return "Platform Users";
     return tenantMap[tenantId]?.name ?? "Unknown Tenant";
   };
 
@@ -353,6 +355,8 @@ export default function UsersPage() {
             // Platform admin view: grouped by tenant
             <div className="space-y-4">
               {Object.keys(usersByTenant).sort((a, b) => {
+                if (a === "platform") return -1;
+                if (b === "platform") return 1;
                 const tenantA = tenantMap[a]?.name || "";
                 const tenantB = tenantMap[b]?.name || "";
                 return tenantA.localeCompare(tenantB);
@@ -360,6 +364,7 @@ export default function UsersPage() {
                 const tenant = tenantMap[tenantId];
                 const tenantUsers = usersByTenant[tenantId];
                 const isOpen = isTenantOpen(tenantId);
+                const isPlatformGroup = tenantId === "platform";
 
                 return (
                   <Card key={tenantId}>
@@ -377,7 +382,7 @@ export default function UsersPage() {
                           <Building2 className="h-5 w-5 text-primary" />
                           <div className="text-left">
                             <CardTitle className="text-lg">
-                              {tenant?.name || "Unknown Tenant"}
+                              {isPlatformGroup ? t("sidebar.platform") || "Platform Users" : (tenant?.name || "Unknown Tenant")}
                             </CardTitle>
                             <CardDescription>
                               {tenantUsers.length} user{tenantUsers.length !== 1 ? "s" : ""}

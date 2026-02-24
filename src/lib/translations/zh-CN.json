@@ -124,7 +124,7 @@
     "healthy": "健康",
     "unhealthy": "异常",
     "unknown": "未知",
-    "failedToLoad": "加载仪表板数据失败。请确保后端服务正在运行于 http://localhost:8000"
+    "failedToLoad": "加载仪表板数据失败。请确保后端服务正在运行于 http://127.0.0.1:8000"
   },
   "tenants": {
     "title": "企业用户",
