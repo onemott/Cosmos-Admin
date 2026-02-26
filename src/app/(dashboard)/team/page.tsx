@@ -141,123 +141,123 @@ export default function TeamPage() {
     <TenantOnly>
       <div className="container mx-auto py-8 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">团队管理</h1>
-        <p className="text-muted-foreground">
-          查看和管理您的团队成员及业绩
-        </p>
-      </div>
-
-      {/* Summary Cards */}
-      {teamSummary && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">直接下属</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{teamSummary.direct_subordinates}</div>
-              <p className="text-xs text-muted-foreground">
-                团队总人数: {teamSummary.total_team_size}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">我的客户</CardTitle>
-              <UserCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{teamSummary.own_clients_count}</div>
-              <p className="text-xs text-muted-foreground">
-                个人负责的客户
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">团队客户</CardTitle>
-              <UserCircle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{teamSummary.team_clients_count}</div>
-              <p className="text-xs text-muted-foreground">
-                团队管理的所有客户
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">团队 AUM</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{teamSummary.formatted_team_aum}</div>
-              <p className="text-xs text-muted-foreground">
-                资产管理总额
-              </p>
-            </CardContent>
-          </Card>
+          <h1 className="text-3xl font-bold tracking-tight">{t("team.title")}</h1>
+          <p className="text-muted-foreground">
+            {t("team.subtitle")}
+          </p>
         </div>
-      )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Team Tree */}
-        {teamTree && (
-          <Card>
-            <CardHeader>
-              <CardTitle>组织架构</CardTitle>
-              <CardDescription>团队层级结构</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <TreeView node={teamTree} />
-            </CardContent>
-          </Card>
+        {/* Summary Cards */}
+        {teamSummary && (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t("team.directSubordinates")}</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{teamSummary.direct_subordinates}</div>
+                <p className="text-xs text-muted-foreground">
+                  {t("team.totalTeamSize", { count: teamSummary.total_team_size })}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t("team.myClients")}</CardTitle>
+                <UserCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{teamSummary.own_clients_count}</div>
+                <p className="text-xs text-muted-foreground">
+                  {t("team.ownClientsDescription")}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t("team.teamClients")}</CardTitle>
+                <UserCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{teamSummary.team_clients_count}</div>
+                <p className="text-xs text-muted-foreground">
+                  {t("team.teamClientsDescription")}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{t("team.teamAUM")}</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{teamSummary.formatted_team_aum}</div>
+                <p className="text-xs text-muted-foreground">
+                  {t("team.totalAUMDescription")}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
-        {/* Subordinate Performance */}
-        {teamSummary && teamSummary.subordinate_breakdown.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>下属业绩</CardTitle>
-              <CardDescription>直接下属的客户和 AUM 情况</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {teamSummary.subordinate_breakdown.map((sub) => (
-                  <div
-                    key={sub.user_id}
-                    className="flex items-center justify-between p-3 rounded-lg border"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-sm font-medium">
-                          {sub.name.charAt(0)}
-                        </span>
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Team Tree */}
+          {teamTree && (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("team.organizationStructure")}</CardTitle>
+                <CardDescription>{t("team.teamHierarchy")}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TreeView node={teamTree} />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Subordinate Performance */}
+          {teamSummary && teamSummary.subordinate_breakdown.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("team.subordinatePerformance")}</CardTitle>
+                <CardDescription>{t("team.subordinatePerformanceDescription")}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {teamSummary.subordinate_breakdown.map((sub) => (
+                    <div
+                      key={sub.user_id}
+                      className="flex items-center justify-between p-3 rounded-lg border"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-medium">
+                            {sub.name.charAt(0)}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium">{sub.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {sub.department || sub.email}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{sub.name}</p>
+                      <div className="text-right">
+                        <p className="font-medium">{sub.formatted_aum}</p>
                         <p className="text-sm text-muted-foreground">
-                          {sub.department || sub.email}
+                          {t("team.clientsCount", { count: sub.clients_count })}
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">{sub.formatted_aum}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {sub.clients_count} 个客户
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </TenantOnly>
   );

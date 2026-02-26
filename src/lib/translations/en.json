@@ -17,6 +17,7 @@
     "integrations": "Integrations",
     "auditLogs": "Audit Logs",
     "settings": "Settings",
+    "notifications": "Notifications",
     "signOut": "Sign Out",
     "platformAdmin": "Platform Admin",
     "platformUser": "Platform User"
@@ -52,6 +53,8 @@
     "no": "No",
     "all": "All",
     "none": "None",
+    "never": "Never",
+    "unknown": "Unknown",
     "search": "Search",
     "filter": "Filter",
     "refresh": "Refresh",
@@ -186,6 +189,38 @@
       "appNameMin": "App name must be at least 2 characters",
       "appNameMax": "App name must be less than 50 characters",
       "invalidHexColor": "Must be a valid hex color (e.g., #1E40AF)"
+    }
+  },
+  "notifications": {
+    "title": "Notification Center",
+    "subtitle": "Send system notifications to platform users",
+    "sendNotification": "Send Notification",
+    "sendDescription": "Send system notifications to users or tenants.",
+    "form": {
+      "title": "Title",
+      "titlePlaceholder": "Notification Title",
+      "targetType": "Target Type",
+      "targetTypePlaceholder": "Select target",
+      "userId": "User ID",
+      "userIdPlaceholder": "Enter User ID",
+      "tenantId": "Tenant ID",
+      "tenantIdPlaceholder": "Enter Tenant ID",
+      "content": "Content",
+      "contentPlaceholder": "Notification message... (Markdown supported)",
+      "send": "Send Notification",
+      "sending": "Sending...",
+      "successTitle": "Success",
+      "successMessage": "Notification sent successfully",
+      "errorTitle": "Error",
+      "errorMessage": "Failed to send notification",
+      "validationError": "Validation Error",
+      "validationMessage": "Title and content are required",
+      "targetIdRequired": "Target ID is required"
+    },
+    "types": {
+      "user": "Specific User",
+      "tenant": "Entire Tenant",
+      "all": "All Users (Platform)"
     }
   },
   "users": {
@@ -501,10 +536,36 @@
     "notificationSettings": "Notification Settings",
     "configureNotifications": "Configure notification preferences",
     "notificationSettingsPlaceholder": "Notification settings will be configured here.",
+    "systemSettings": "System Settings",
+    "configureSystem": "Manage global system configurations and legal documents",
     "languageSettings": "Language Settings",
     "languageDescription": "Choose your preferred display language. This setting is saved in your browser.",
     "currentLanguage": "Current Language",
-    "selectLanguage": "Select Language"
+    "selectLanguage": "Select Language",
+    "publiclyAvailable": "Publicly Available",
+    "contentMarkdown": "Content (Markdown)",
+    "preview": "Preview",
+    "privacyPolicy": "Privacy Policy",
+    "privacyPolicyDescription": "Edit the privacy policy content shown in the mobile app. Updating this will prompt users to re-accept the agreement.",
+    "termsOfService": "Terms of Service",
+    "termsOfServiceDescription": "Edit the terms of service content."
+  },
+  "team": {
+    "title": "Team Management",
+    "subtitle": "View and manage your team members and performance",
+    "directSubordinates": "Direct Subordinates",
+    "totalTeamSize": "Total Team Size: {{count}}",
+    "myClients": "My Clients",
+    "ownClientsDescription": "Clients you manage personally",
+    "teamClients": "Team Clients",
+    "teamClientsDescription": "All clients managed by your team",
+    "teamAUM": "Team AUM",
+    "totalAUMDescription": "Total Assets Under Management",
+    "organizationStructure": "Organization Structure",
+    "teamHierarchy": "Team hierarchy structure",
+    "subordinatePerformance": "Subordinate Performance",
+    "subordinatePerformanceDescription": "Clients and AUM of direct subordinates",
+    "clientsCount": "{{count}} Clients"
   },
   "invitations": {
     "title": "Invitations",
@@ -562,6 +623,19 @@
     "noCredentials": "No client credentials found. Click \"Add Credentials\" to create login access for a client.",
     "failedToLoad": "Failed to load client credentials. Make sure the backend is running.",
     "clientCredentials": "Client Login Credentials",
+    "clientsWithoutAccess": "Clients Without Access",
+    "countWithCredentials": "{{count}} clients with login credentials",
+    "countWithCredentials_one": "{{count}} client with login credentials",
+    "updateEmailDescription": "Update the login email for {{name}}.",
+    "unknownClient": "Unknown Client",
+    "confirmDeactivate": "Are you sure you want to deactivate {{name}}'s account?",
+    "confirmActivate": "Are you sure you want to activate {{name}}'s account?",
+    "deactivateWarningTitle": "What happens when you deactivate:",
+    "deactivateWarning1": "The client will be logged out on their next API request",
+    "deactivateWarning2": "They will not be able to log in until reactivated",
+    "deactivateWarning3": "Their data remains intact and can be accessed by EAM staff",
+    "activateSuccessMessage": "The client will be able to log in to the mobile app again.",
+    "generatePasswordWarning": "This will generate a new temporary password. The client will need to use this password to log in.",
     "searchPlaceholder": "Search by email or client name...",
     "mfaEnabled": "MFA Enabled",
     "lastLogin": "Last Login",
@@ -587,7 +661,7 @@
     },
     "deleteDialog": {
       "title": "Delete Credentials",
-      "description": "Are you sure you want to delete these credentials?",
+      "description": "Are you sure you want to delete credentials for {{name}}?",
       "warning": "The client will no longer be able to log in to the mobile app."
     },
     "tempPassword": {

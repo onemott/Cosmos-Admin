@@ -17,6 +17,7 @@
     "integrations": "集成",
     "auditLogs": "审计日志",
     "settings": "设置",
+    "notifications": "通知中心",
     "signOut": "退出登录",
     "platformAdmin": "平台管理员",
     "platformUser": "平台用户"
@@ -52,6 +53,8 @@
     "no": "否",
     "all": "全部",
     "none": "无",
+    "never": "从未",
+    "unknown": "未知",
     "search": "搜索",
     "filter": "筛选",
     "refresh": "刷新",
@@ -186,6 +189,38 @@
       "appNameMin": "应用名称至少需要 2 个字符",
       "appNameMax": "应用名称不能超过 50 个字符",
       "invalidHexColor": "请输入有效的十六进制颜色值（如 #1E40AF）"
+    }
+  },
+  "notifications": {
+    "title": "通知中心",
+    "subtitle": "向平台用户发送系统通知",
+    "sendNotification": "发送通知",
+    "sendDescription": "向用户或租户发送系统通知。",
+    "form": {
+      "title": "标题",
+      "titlePlaceholder": "通知标题",
+      "targetType": "目标类型",
+      "targetTypePlaceholder": "选择目标",
+      "userId": "用户 ID",
+      "userIdPlaceholder": "输入用户 ID",
+      "tenantId": "租户 ID",
+      "tenantIdPlaceholder": "输入租户 ID",
+      "content": "内容",
+      "contentPlaceholder": "通知消息... (支持 Markdown)",
+      "send": "发送通知",
+      "sending": "发送中...",
+      "successTitle": "成功",
+      "successMessage": "通知发送成功",
+      "errorTitle": "错误",
+      "errorMessage": "发送通知失败",
+      "validationError": "验证错误",
+      "validationMessage": "标题和内容为必填项",
+      "targetIdRequired": "目标 ID 为必填项"
+    },
+    "types": {
+      "user": "特定用户",
+      "tenant": "整个租户",
+      "all": "所有用户 (全平台)"
     }
   },
   "users": {
@@ -501,10 +536,36 @@
     "notificationSettings": "通知设置",
     "configureNotifications": "配置通知偏好",
     "notificationSettingsPlaceholder": "通知设置将在此配置。",
+    "systemSettings": "系统设置",
+    "configureSystem": "管理全局系统配置和法律文档",
     "languageSettings": "语言设置",
     "languageDescription": "选择您偏好的显示语言。此设置保存在您的浏览器中。",
     "currentLanguage": "当前语言",
-    "selectLanguage": "选择语言"
+    "selectLanguage": "选择语言",
+    "publiclyAvailable": "公开可用",
+    "contentMarkdown": "内容 (Markdown)",
+    "preview": "预览",
+    "privacyPolicy": "隐私政策",
+    "privacyPolicyDescription": "编辑在移动应用中显示的隐私政策内容。更新此内容将提示用户重新接受协议。",
+    "termsOfService": "服务条款",
+    "termsOfServiceDescription": "编辑服务条款内容。"
+  },
+  "team": {
+    "title": "团队管理",
+    "subtitle": "查看和管理您的团队成员及业绩",
+    "directSubordinates": "直接下属",
+    "totalTeamSize": "团队总人数: {{count}}",
+    "myClients": "我的客户",
+    "ownClientsDescription": "个人负责的客户",
+    "teamClients": "团队客户",
+    "teamClientsDescription": "团队管理的所有客户",
+    "teamAUM": "团队 AUM",
+    "totalAUMDescription": "资产管理总额",
+    "organizationStructure": "组织架构",
+    "teamHierarchy": "团队层级结构",
+    "subordinatePerformance": "下属业绩",
+    "subordinatePerformanceDescription": "直接下属的客户和 AUM 情况",
+    "clientsCount": "{{count}} 个客户"
   },
   "invitations": {
     "title": "邀请",
@@ -562,6 +623,18 @@
     "noCredentials": "未找到客户凭证。点击'添加凭证'为客户创建登录权限。",
     "failedToLoad": "加载客户凭证失败。请确保后端服务正在运行。",
     "clientCredentials": "客户登录凭证",
+    "clientsWithoutAccess": "无权限客户",
+    "countWithCredentials": "{{count}} 名客户拥有登录凭证",
+    "updateEmailDescription": "更新 {{name}} 的登录邮箱。",
+    "unknownClient": "未知客户",
+    "confirmDeactivate": "您确定要停用 {{name}} 的账户吗？",
+    "confirmActivate": "您确定要启用 {{name}} 的账户吗？",
+    "deactivateWarningTitle": "停用后将会发生：",
+    "deactivateWarning1": "客户将在下次API请求时被登出",
+    "deactivateWarning2": "在重新启用前无法登录",
+    "deactivateWarning3": "数据保留完整，EAM员工仍可访问",
+    "activateSuccessMessage": "客户将能够再次登录移动应用。",
+    "generatePasswordWarning": "这将生成一个新的临时密码。客户需要使用此密码登录。",
     "searchPlaceholder": "按邮箱或客户名搜索...",
     "mfaEnabled": "已启用MFA",
     "lastLogin": "最后登录",
@@ -587,7 +660,7 @@
     },
     "deleteDialog": {
       "title": "删除凭证",
-      "description": "您确定要删除这些凭证吗？",
+      "description": "您确定要删除 {{name}} 的凭证吗？",
       "warning": "客户将无法再登录移动应用。"
     },
     "tempPassword": {

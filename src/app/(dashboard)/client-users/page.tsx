@@ -97,7 +97,7 @@ export default function ClientUsersPage() {
     if (client.client_type === "individual") {
       return `${client.first_name} ${client.last_name}`;
     }
-    return client.entity_name || "Unknown";
+    return client.entity_name || t("common.unknown");
   };
 
   const handleCreate = async () => {
@@ -241,7 +241,7 @@ export default function ClientUsersPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              {t("clients.title")} Without Access
+              {t("clientUsers.clientsWithoutAccess")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -257,7 +257,7 @@ export default function ClientUsersPage() {
         <CardHeader>
           <CardTitle>{t("clientUsers.clientCredentials")}</CardTitle>
           <CardDescription>
-            {clientUsers.length} {t("common.client").toLowerCase()}{clientUsers.length !== 1 ? "s" : ""} with login credentials
+            {t("clientUsers.countWithCredentials", { count: clientUsers.length })}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -287,7 +287,7 @@ export default function ClientUsersPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <UserDataTooltip>
                           <span className="font-medium">
-                            {clientUser.client_name || "Unknown Client"}
+                            {clientUser.client_name || t("clientUsers.unknownClient")}
                           </span>
                         </UserDataTooltip>
                         <Badge variant="outline" className="text-xs capitalize">
@@ -315,7 +315,7 @@ export default function ClientUsersPage() {
                       <div>
                         {clientUser.last_login_at
                           ? formatDate(clientUser.last_login_at)
-                          : "Never"}
+                          : t("common.never")}
                       </div>
                     </div>
 
@@ -510,7 +510,7 @@ export default function ClientUsersPage() {
           <DialogHeader>
             <DialogTitle>{t("common.edit")} {t("common.email")}</DialogTitle>
             <DialogDescription>
-              Update the login email for {selectedUser?.client_name}.
+              {t("clientUsers.updateEmailDescription", { name: selectedUser?.client_name })}
             </DialogDescription>
           </DialogHeader>
 
@@ -591,8 +591,7 @@ export default function ClientUsersPage() {
           ) : (
             <>
               <p className="text-sm text-muted-foreground">
-                This will generate a new temporary password. The client will need to use this
-                password to log in.
+                {t("clientUsers.generatePasswordWarning")}
               </p>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setPasswordDialogOpen(false)}>
@@ -625,8 +624,7 @@ export default function ClientUsersPage() {
           <DialogHeader>
             <DialogTitle>{t("clientUsers.deleteDialog.title")}</DialogTitle>
             <DialogDescription>
-              {t("clientUsers.deleteDialog.description")}{" "}
-              <strong>{selectedUser?.client_name}</strong>?
+              {t("clientUsers.deleteDialog.description", { name: selectedUser?.client_name })}
             </DialogDescription>
           </DialogHeader>
 
@@ -669,26 +667,26 @@ export default function ClientUsersPage() {
             </DialogTitle>
             <DialogDescription>
               {selectedUser?.is_active
-                ? `Are you sure you want to deactivate ${selectedUser?.client_name}'s account?`
-                : `Are you sure you want to activate ${selectedUser?.client_name}'s account?`}
+                ? t("clientUsers.confirmDeactivate", { name: selectedUser?.client_name })
+                : t("clientUsers.confirmActivate", { name: selectedUser?.client_name })}
             </DialogDescription>
           </DialogHeader>
 
           {selectedUser?.is_active ? (
             <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
               <p className="text-sm text-orange-800 font-medium mb-2">
-                What happens when you deactivate:
+                {t("clientUsers.deactivateWarningTitle")}
               </p>
               <ul className="text-sm text-orange-700 list-disc list-inside space-y-1">
-                <li>The client will be logged out on their next API request</li>
-                <li>They will not be able to log in until reactivated</li>
-                <li>Their data remains intact and can be accessed by EAM staff</li>
+                <li>{t("clientUsers.deactivateWarning1")}</li>
+                <li>{t("clientUsers.deactivateWarning2")}</li>
+                <li>{t("clientUsers.deactivateWarning3")}</li>
               </ul>
             </div>
           ) : (
             <div className="rounded-lg border border-green-200 bg-green-50 p-4">
               <p className="text-sm text-green-800">
-                The client will be able to log in to the mobile app again.
+                {t("clientUsers.activateSuccessMessage")}
               </p>
             </div>
           )}

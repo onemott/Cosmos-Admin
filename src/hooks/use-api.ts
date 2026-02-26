@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import type { AuditLogListResponse } from "@/types";
 
@@ -1099,6 +1099,44 @@ export function useCancelInvitation() {
     mutationFn: (id: string) => api.invitations.cancel(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invitations"] });
+    },
+  });
+}
+
+// ============================================================================
+// Notifications
+// ============================================================================
+
+export function useMyNotifications(params?: { limit?: number }) {
+  return useInfiniteQuery({
+    queryKey: ["notifications", "mine", params?.limit],
+    queryFn: ({ pageParam }) => 
+      api.notifications.listMine({ skip: pageParam as number, limit: params?.limit || 20 }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      const nextSkip = allPages.length * (params?.limit || 20);
+      return nextSkip < lastPage.total ? nextSkip : undefined;
+    },
+    refetchInterval: 30000,
+  });
+}
+
+export function useMarkNotificationRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.notifications.markRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications", "mine"] });
+    },
+  });
+}
+
+export function useMarkAllNotificationsRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.notifications.markAllRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications", "mine"] });
     },
   });
 }

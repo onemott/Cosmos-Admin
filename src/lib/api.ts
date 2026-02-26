@@ -141,6 +141,13 @@ class ApiClient {
     });
   }
 
+  async put<T, D = unknown>(endpoint: string, data: D): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
   async patch<T, D = unknown>(endpoint: string, data: D): Promise<T> {
     return this.request<T>(endpoint, {
       method: "PATCH",
@@ -675,6 +682,40 @@ export const api = {
       expires_in_days?: number;
     }) => apiClient.post("/invitations", data),
     cancel: (id: string) => apiClient.delete(`/invitations/${id}`),
+  },
+
+  // System Config (Admin)
+  system: {
+    getConfig: (key: string) => apiClient.get<{
+      key: string;
+      value: string;
+      version: string;
+      description?: string;
+      is_public: boolean;
+      updated_at: string;
+    }>(`/admin/system/config/${key}`),
+    updateConfig: (key: string, data: {
+      value?: string;
+      version?: string;
+      description?: string;
+      is_public?: boolean;
+    }) => apiClient.put(`/admin/system/config/${key}`, data),
+  },
+
+  // Notifications (Admin)
+  notifications: {
+    send: (data: {
+      title: string;
+      content: string;
+      content_format: 'text' | 'markdown' | 'html';
+      type: string;
+      target_type: 'user' | 'tenant' | 'all';
+      target_id?: string;
+    }) => apiClient.post("/admin/notifications/send", data),
+    listMine: (params?: { skip?: number; limit?: number }) =>
+      apiClient.get(`/admin/notifications/mine?skip=${params?.skip || 0}&limit=${params?.limit || 20}`),
+    markRead: (id: string) => apiClient.patch(`/admin/notifications/${id}/read`, {}),
+    markAllRead: () => apiClient.post("/admin/notifications/read-all"),
   },
 };
 

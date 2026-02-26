@@ -17,6 +17,7 @@ import { useCurrentUser } from "@/hooks/use-api";
 import { Badge } from "@/components/ui/badge";
 import { LanguageSelector } from "@/components/language-selector";
 import { useTranslation } from "@/lib/i18n";
+import { NotificationsPopover } from "@/components/notifications-popover";
 
 interface CurrentUserData {
   id: string;
@@ -74,10 +75,7 @@ export function Header() {
         <LanguageSelector />
 
         {/* Notifications */}
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-600" />
-        </Button>
+        <NotificationsPopover />
 
         {/* User Menu */}
         <DropdownMenu>

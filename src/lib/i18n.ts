@@ -8,7 +8,7 @@ type TranslationKeys = typeof en;
 
 const translations: Record<Language, TranslationKeys> = {
   en,
-  "zh-CN": zhCN as TranslationKeys,
+  "zh-CN": zhCN as unknown as TranslationKeys,
 };
 
 /**
@@ -23,6 +23,7 @@ function getNestedValue(obj: unknown, path: string): string {
     if (current && typeof current === "object" && key in current) {
       current = (current as Record<string, unknown>)[key];
     } else {
+      console.warn(`Translation key not found: ${path} (missing segment: ${key})`);
       return path; // Return the key itself if not found
     }
   }

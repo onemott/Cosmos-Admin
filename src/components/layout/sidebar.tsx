@@ -19,6 +19,7 @@ import {
   Ticket,
   Palette,
   UsersRound,
+  Bell,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -117,9 +118,14 @@ const systemNavigation = [
     tenantOnly: true,
   },
   {
-      name: t("sidebar.auditLogs"),
+    name: t("sidebar.auditLogs"),
     href: "/audit",
     icon: ScrollText,
+  },
+  {
+    name: t("sidebar.notifications") || "Notifications",
+    href: "/notifications/send",
+    icon: Bell,
   },
 ];
 
@@ -165,7 +171,7 @@ const bottomNavigation = [
   };
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r bg-card">
+    <div className="flex h-full w-64 flex-col border-r bg-card overflow-y-auto">
       {/* Logo */}
       <div className="flex h-16 items-center gap-2 px-6">
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">

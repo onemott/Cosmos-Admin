@@ -9,6 +9,8 @@ import { useTranslation } from "@/lib/i18n";
 import { LanguageSelector } from "@/components/language-selector";
 import { useLanguage, LANGUAGES } from "@/contexts/language-context";
 
+import { SystemConfigEditor } from "@/components/system/config-editor";
+
 export default function SettingsPage() {
   const { t } = useTranslation();
   const { language } = useLanguage();
@@ -30,6 +32,7 @@ export default function SettingsPage() {
           <TabsTrigger value="language">{t("settings.language")}</TabsTrigger>
           <TabsTrigger value="security">{t("settings.security")}</TabsTrigger>
           <TabsTrigger value="notifications">{t("settings.notifications")}</TabsTrigger>
+          <TabsTrigger value="system">{t("sidebar.system")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-4">
@@ -105,6 +108,22 @@ export default function SettingsPage() {
               </p>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="system" className="space-y-4">
+          <div className="grid gap-6">
+            <SystemConfigEditor
+              configKey="privacy_policy"
+              title={t("settings.privacyPolicy") || "Privacy Policy"}
+              description={t("settings.privacyPolicyDescription") || "Edit the privacy policy content shown in the mobile app."}
+            />
+            
+            <SystemConfigEditor
+              configKey="terms_of_service"
+              title={t("settings.termsOfService") || "Terms of Service"}
+              description={t("settings.termsOfServiceDescription") || "Edit the terms of service content."}
+            />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
