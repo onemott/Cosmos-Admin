@@ -668,3 +668,36 @@ export interface DocumentUploadResponse {
   uploaded_by_id?: string;
 }
 
+// ============================================================================
+// Chat Types
+// ============================================================================
+
+export interface ChatMessage {
+  id: string;
+  session_id: string;
+  sender_type: "user" | "client";
+  sender_id: string;
+  content: string;
+  content_type: "text" | "image" | "file";
+  created_at: string;
+  client_side_id?: string;
+}
+
+export interface ChatSession {
+  id: string;
+  client_id: string;
+  client_name?: string;
+  last_message: string;
+  last_message_at: string;
+  unread_count: number;
+  status: "active" | "archived";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatSessionListResponse {
+  sessions: ChatSession[];
+  total_count: number;
+  skip: number;
+  limit: number;
+}

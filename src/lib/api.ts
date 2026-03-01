@@ -717,5 +717,24 @@ export const api = {
     markRead: (id: string) => apiClient.patch(`/admin/notifications/${id}/read`, {}),
     markAllRead: () => apiClient.post("/admin/notifications/read-all"),
   },
+
+  // Chat
+  chat: {
+    sessions: (params?: { skip?: number; limit?: number }) => {
+      const searchParams = new URLSearchParams({
+        skip: String(params?.skip || 0),
+        limit: String(params?.limit || 20),
+      });
+      return apiClient.get(`/chat/sessions?${searchParams}`);
+    },
+    history: (sessionId: string, params?: { skip?: number; limit?: number }) => {
+      const searchParams = new URLSearchParams({
+        skip: String(params?.skip || 0),
+        limit: String(params?.limit || 50),
+      });
+      return apiClient.get(`/chat/sessions/${sessionId}/history?${searchParams}`);
+    },
+    markRead: (sessionId: string) => apiClient.post(`/chat/sessions/${sessionId}/read`),
+  },
 };
 
