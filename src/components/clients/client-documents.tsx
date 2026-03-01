@@ -46,13 +46,16 @@ import { getAccessToken } from "@/lib/auth";
 import { ClientDocument, DocumentType } from "@/types";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg", ".gif", ".webp"];
+const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".png", ".jpg", ".jpeg", ".heic", ".gif", ".webp"];
 const ALLOWED_MIME_TYPES = [
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   "image/png",
   "image/jpeg",
+  "image/heic",
   "image/gif",
   "image/webp",
 ];
@@ -340,7 +343,7 @@ export function ClientDocuments({ clientId }: ClientDocumentsProps) {
                   Drag and drop a file here, or click to browse
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  PDF, Word, or Images up to 50MB
+                  PDF, Word, Excel, or Images up to 50MB
                 </p>
               </div>
             ) : (
