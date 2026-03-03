@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import {
   Upload,
   FileText,
@@ -11,12 +11,14 @@ import {
   Loader2,
   X,
   AlertCircle,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { FilePreviewModal } from "@/components/ui/file-preview-modal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,11 +65,28 @@ export function ProductDocuments({ productId }: ProductDocumentsProps) {
   const [documentName, setDocumentName] = useState("");
   const [description, setDescription] = useState("");
   const [deleteDocId, setDeleteDocId] = useState<string | null>(null);
+  const [previewFile, setPreviewFile] = useState<{
+    url: string | null;
+    name: string;
+    type: string;
+  } | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
   const { data: documents, isLoading, error } = useProductDocuments(productId);
   const uploadMutation = useUploadProductDocument(productId);
   const deleteMutation = useDeleteProductDocument(productId);
+
+  const fetchDocumentBlob = async (docId: string) => {
+    const url = api.products.documents.downloadUrl(productId, docId);
+    const token = getAccessToken();
+    const response = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) {
+      throw new Error("Failed to fetch document");
+    }
+    return response.blob();
+  };
 
   const validateFile = useCallback((file: File): string | null => {
     // Check empty file
@@ -180,20 +199,45 @@ export function ProductDocuments({ productId }: ProductDocumentsProps) {
     }
   };
 
+  useEffect(() => {
+    return () => {
+      if (previewFile?.url) {
+        URL.revokeObjectURL(previewFile.url);
+      }
+    };
+  }, [previewFile]);
+
+  const handlePreview = async (doc: ProductDocument) => {
+    try {
+      setPreviewFile({
+        url: null,
+        name: doc.name,
+        type: doc.mime_type,
+      });
+
+      const blob = await fetchDocumentBlob(doc.id);
+      const objectUrl = URL.createObjectURL(blob);
+      
+      setPreviewFile(prev => {
+        if (!prev || prev.name !== doc.name) {
+          URL.revokeObjectURL(objectUrl);
+          return prev;
+        }
+        return { ...prev, url: objectUrl };
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Preview failed",
+        description: "Failed to load document preview.",
+      });
+      setPreviewFile(null);
+    }
+  };
+
   const handleDownload = async (doc: ProductDocument) => {
     try {
-      const url = api.products.documents.downloadUrl(productId, doc.id);
-      const token = getAccessToken();
-      
-      const response = await fetch(url, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      
-      if (!response.ok) {
-        throw new Error("Download failed");
-      }
-      
-      const blob = await response.blob();
+      const blob = await fetchDocumentBlob(doc.id);
       const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = objectUrl;
@@ -430,6 +474,15 @@ export function ProductDocuments({ productId }: ProductDocumentsProps) {
                     type="button"
                     variant="ghost"
                     size="icon"
+                    onClick={() => handlePreview(doc)}
+                    title="Preview"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleDownload(doc)}
                     title="Download"
                   >
@@ -450,6 +503,17 @@ export function ProductDocuments({ productId }: ProductDocumentsProps) {
             );
           })}
         </div>
+      )}
+
+      {/* Preview Modal */}
+      {previewFile && (
+        <FilePreviewModal
+          isOpen={!!previewFile}
+          onClose={() => setPreviewFile(null)}
+          fileUrl={previewFile.url}
+          fileName={previewFile.name}
+          fileType={previewFile.type}
+        />
       )}
 
       {/* Delete Confirmation Dialog */}
